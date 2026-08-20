@@ -1,0 +1,45 @@
+{
+  "schema_version": 2,
+  "gate_record_id": "GATE-REPAIR-08-20260820",
+  "gate_type": "Implementation Repair",
+  "agent_role": "Implementation Repair",
+  "agent_id": "/root",
+  "pr_number": 1,
+  "base_sha": "e030baa34f08a5b0cfd8e1c45d67f45be50f3753",
+  "candidate_sha": "82795242c773515c765dc8f49d88cb4ed492f01e",
+  "candidate_tree": "027e33587c6114d30aa5f07ba2631a41e6b21148",
+  "timestamp": "2026-08-20T18:48:07Z",
+  "scope": "Append-only evidence lifecycle, complete remote evidence discovery, live PR reconciliation, release enforcement, factory tests, and valid GitHub Actions environment configuration.",
+  "checks": [
+    "Governance validator passed locally",
+    "Full automated test suite passed locally: 204 tests",
+    "Git diff whitespace validation passed",
+    "Duplicate workflow environment mapping repaired",
+    "Implementation repair only; independent recheck remains required"
+  ],
+  "findings": [],
+  "repair_claims": [
+    {
+      "source_gate_record_id": "GATE-REVIEW-05-20260820",
+      "source_finding_id": "REVIEW-05-F2",
+      "repaired_candidate_sha": "82795242c773515c765dc8f49d88cb4ed492f01e",
+      "summary": "Replaced mutable finding closure with an append-only graph in which only a later independent PASS recheck can close a finding."
+    },
+    {
+      "source_gate_record_id": "GATE-REVIEW-06-20260820",
+      "source_finding_id": "REVIEW-06-F1",
+      "repaired_candidate_sha": "82795242c773515c765dc8f49d88cb4ed492f01e",
+      "summary": "Added release-time independent retrieval and one-to-one reconciliation of live PR-visible records against immutable Git objects and refs."
+    },
+    {
+      "source_gate_record_id": "GATE-REVIEW-06-20260820",
+      "source_finding_id": "REVIEW-06-F2",
+      "repaired_candidate_sha": "82795242c773515c765dc8f49d88cb4ed492f01e",
+      "summary": "Made evidence discovery enumerate complete remote origin governance refs rather than trusting local refs or a selected subset."
+    }
+  ],
+  "rechecks": [],
+  "disposition": "PASS",
+  "repository_state_changed": true,
+  "supersedes": ["GATE-REPAIR-07-20260820"]
+}
