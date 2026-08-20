@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "binding_id": "LEGACY-BINDING-REVIEW-05-20260820",
+  "record_type": "Legacy Evidence Binding",
+  "pr_number": 1,
+  "legacy_gate_record_id": "GATE-REVIEW-05-20260820",
+  "legacy_schema_version": 1,
+  "legacy_comment_id": 5359092776,
+  "legacy_comment_url": "https://github.com/FlorisOrd/tailor/pull/1#issuecomment-5359092776",
+  "legacy_agent_id": "REVIEW-05 Factory Governance Verification",
+  "legacy_gate_type": "Independent Code Review",
+  "legacy_base_sha": "e030baa34f08a5b0cfd8e1c45d67f45be50f3753",
+  "legacy_candidate_sha": "dce0abbc426db3e87b44082c0755e358ab1a80af",
+  "legacy_candidate_tree": "01494795935d74694b7f33a940de16b12474be49",
+  "legacy_disposition": "FAIL",
+  "legacy_record": {
+    "schema_version": 1,
+    "gate_record_id": "GATE-REVIEW-05-20260820",
+    "gate_type": "Independent Code Review",
+    "agent_role": "Independent Code Review",
+    "agent_id": "REVIEW-05 Factory Governance Verification",
+    "pr_number": 1,
+    "base_sha": "e030baa34f08a5b0cfd8e1c45d67f45be50f3753",
+    "candidate_sha": "dce0abbc426db3e87b44082c0755e358ab1a80af",
+    "candidate_tree": "01494795935d74694b7f33a940de16b12474be49",
+    "timestamp": "2026-08-20T16:58:25Z",
+    "scope": "Independent adversarial review of the complete governance candidate, including QA-01 exact authorization/integration repairs, canonical structured policy and mutation enforcement, durable Gate Records, factory tests, CI, and governance regressions.",
+    "checks": [
+      "Verified GitHub PR #1 base/head and local branch/base/tree exact identities; candidate is 5 commits ahead, 0 behind, and worktree is clean.",
+      "Ran python -m unittest discover -s tests -p test_*.py -v: 25/25 passed.",
+      "Ran scripts/validate_governance.py: passed.",
+      "Ran scripts/verify_integration.py candidate for the recorded base/candidate: passed with expected tree.",
+      "Ran git diff --check main...bootstrap/agent-company: passed.",
+      "Inspected GitHub Actions run 32393999948 and its jobs: governance validation/factory tests, candidate identity, and Gitleaks passed; PR-inapplicable integration job skipped.",
+      "Adversarial integration test published the correct authorization commit only under refs/governance/authorizations/pr-999/wrong-candidate; verify_integration accepted it.",
+      "Adversarial Gate Record tests showed malformed finding objects and an unlinked fake supersession hiding an open MAJOR record are accepted.",
+      "Adversarial canonical-policy mutation emptied evidence.required_gate_record_fields; validate_policy returned no problems."
+    ],
+    "findings": [
+      {
+        "finding_id": "REVIEW-05-F1",
+        "severity": "MAJOR",
+        "summary": "scripts/verify_integration.py accepts an authorization commit published under any governed namespace ref instead of requiring the exact PR/candidate ref named by the authorization record; a mismatched authorization ref therefore passes exact-tuple verification. Require and verify the exact refs/governance/authorizations/pr-<pr_number>/<candidate_sha> ref, reject additional/moved/reused mismatches as defined by policy, and add regression tests.",
+        "status": "OPEN"
+      },
+      {
+        "finding_id": "REVIEW-05-F2",
+        "severity": "MAJOR",
+        "summary": "scripts/validate_gate_records.py does not enforce the finding schema and ignores all records carrying any non-null superseded_by without validating reciprocal linkage or successor existence. A malformed record is accepted, and an open MAJOR can be hidden with a fabricated superseded_by while a PASS record satisfies the gate. Enforce the JSON schema or equivalent exact nested validation, validate bidirectional acyclic supersession links and candidate/gate continuity, and retain unresolved blocking history; add negative factory tests.",
+        "status": "OPEN"
+      },
+      {
+        "finding_id": "REVIEW-05-F3",
+        "severity": "MAJOR",
+        "summary": "scripts/validate_governance.py does not validate critical required-evidence structure such as evidence.required_gate_record_fields or candidate_identity_fields. Emptying required_gate_record_fields leaves validation green, so the canonical policy can lose a required critical control without CI detecting it. Assert all critical structured policy fields and relationships and add negative mutation tests for each required-evidence invariant.",
+        "status": "OPEN"
+      }
+    ],
+    "disposition": "FAIL",
+    "repository_state_changed": false,
+    "supersedes": null,
+    "superseded_by": null
+  },
+  "canonical_json_sha256": "6c659e953ef64b1ba2d30d5392b501b15292db577ce7d71609bf8a0fdb611f4a",
+  "raw_comment_sha256": "e1195a1dd0ca8c5064fa5d2280de78cd99e1b23c1152f94e0dbdae1e5f7bb4cb",
+  "observed_at": "2026-08-20T19:22:30Z",
+  "migration_agent_id": "/root",
+  "migration_candidate_sha": "c54aa8df0118919bcc326b4eb1756ce6e72c6788",
+  "migration_candidate_tree": "3a8f1f0c5a63fe857fe9ff756d26d2cd1bef86fe",
+  "provenance_only": true,
+  "not_approval": true
+}
