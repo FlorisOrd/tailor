@@ -55,7 +55,7 @@ Independent Code Review, QA, triggered Security Review, automated checks, and ot
 
 ### C. Authorization to Merge
 
-Release may issue **AUTHORIZATION TO MERGE** only when agent-published Gate Records are complete and current. Release publishes its own PASS Gate Record, then creates an immutable Git authorization commit containing `.github/governance/authorization.json` and publishes it under `refs/governance/authorizations/pr-<number>/<candidate-sha>`. It records exact PR, base, candidate, tree, timestamp, Release identity, and Release Gate Record ID. It authorizes only that tuple and is not authorization to deploy.
+Release may issue **AUTHORIZATION TO MERGE** only when agent-published Gate Records are complete and current. Release publishes its own PASS Gate Record, then creates an immutable Git authorization commit containing `.github/governance/authorization.json` and publishes it under `refs/governance/authorizations/pr-<number>/<candidate-sha>`. It records exact PR, base, candidate, tree, timestamp, Release identity, and Release Gate Record ID. Before authorization, the verifier fails closed unless the open, unmerged GitHub PR and freshly queried `origin` `main` and candidate refs match that exact tuple. It authorizes only that tuple and is not authorization to deploy.
 
 ### D. Deterministic Integration
 

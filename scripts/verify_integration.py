@@ -2,10 +2,10 @@
 from __future__ import annotations
 import argparse,json,os,re,subprocess,sys
 from datetime import datetime
-from validate_evidence import validate_ci_run,validate_selected_live
+from validate_evidence import github_json,validate_ci_run,validate_selected_live
 from validate_gate_records import GATES,RECORD_PATH,validate_current_set
 
-SHA=re.compile(r"^[0-9a-f]{40}$");AUTH_PATH=".github/governance/authorization.json";AUTH_TRAILER="Governance-Authorization";PR_TRAILER="Governance-PR"
+SHA=re.compile(r"^[0-9a-f]{40}$");AUTH_PATH=".github/governance/authorization.json";AUTH_TRAILER="Governance-Authorization";PR_TRAILER="Governance-PR";GOVERNED_BASE_BRANCH="main"
 AUTH_FIELDS={"schema_version","record_type","authorization_id","pr_number","base_sha","candidate_sha","candidate_tree","timestamp","implementation_agent_id","lead_agent_id","release_agent_id","ci_run_id","ci_candidate_sha","gate_record_commits"}
 def git(*args):
     result=subprocess.run(("git",*args),capture_output=True,text=True,check=False)
@@ -25,6 +25,32 @@ def trailer(commit,key):
     if len(values)!=1 or not values[0].strip():raise ValueError(f"integration must contain exactly one {key} trailer")
     return values[0].strip()
 def auth_ref(pr,candidate):return f"refs/governance/authorizations/pr-{pr}/{candidate}"
+def remote_ref_sha(ref):
+    result=subprocess.run(("git","ls-remote","--exit-code","origin",ref),capture_output=True,text=True,check=False)
+    if result.returncode:raise ValueError(f"required live origin ref is unavailable: {ref}")
+    lines=[line.split() for line in result.stdout.splitlines() if line.strip()]
+    if len(lines)!=1 or len(lines[0])!=2 or lines[0][1]!=ref or not SHA.fullmatch(lines[0][0]):raise ValueError(f"live origin ref is ambiguous or invalid: {ref}")
+    return lines[0][0]
+def validate_live_authorization(repo,token,a):
+    try:pr=github_json(f"https://api.github.com/repos/{repo}/pulls/{a['pr_number']}",token)
+    except Exception as error:raise ValueError("live GitHub PR state is unavailable") from error
+    problems=[];number=a["pr_number"]
+    if pr.get("number")!=number:problems.append("live PR number differs from authorization")
+    if pr.get("state")!="open":problems.append("live PR is not open")
+    if pr.get("merged") is not False:problems.append("live PR is merged or merge state is unavailable")
+    base=pr.get("base") or {};head=pr.get("head") or {}
+    if base.get("ref")!=GOVERNED_BASE_BRANCH:problems.append("live PR base branch is not governed main")
+    if base.get("sha")!=a["base_sha"]:problems.append("live PR base SHA differs from authorization")
+    if head.get("sha")!=a["candidate_sha"]:problems.append("live PR head SHA differs from authorization")
+    if (head.get("repo") or {}).get("full_name")!=repo:problems.append("live PR candidate is not an origin branch")
+    if problems:return problems
+    try:
+        live_base=remote_ref_sha(f"refs/heads/{GOVERNED_BASE_BRANCH}")
+        live_candidate=remote_ref_sha(f"refs/heads/{head['ref']}")
+    except (KeyError,TypeError,ValueError) as error:return [str(error)]
+    if live_base!=a["base_sha"]:problems.append("live origin main moved from authorized base")
+    if live_candidate!=a["candidate_sha"]:problems.append("live origin candidate branch moved from authorized candidate")
+    return problems
 def load_authorization(commit):
     require_commit(commit,"authorization")
     try:a=json.loads(git("show",f"{commit}:{AUTH_PATH}"))
@@ -58,16 +84,24 @@ def verify_authorization(authorization,reconcile_live=False):
     if reconcile_live:
         token=os.environ.get("GITHUB_TOKEN");repo=os.environ.get("GITHUB_REPOSITORY")
         if not token or not repo:raise ValueError("live selected-evidence validation requires GitHub context")
+        problems.extend(validate_live_authorization(repo,token,a))
         problems.extend(validate_selected_live(repo,pr,token,records_by_type,a["gate_record_commits"]))
         problems.extend(validate_ci_run(repo,token,a["ci_run_id"],a["candidate_sha"]))
     if problems:raise ValueError("current gate evidence is invalid: "+"; ".join(problems))
     if tree(a["candidate_sha"])!=a["candidate_tree"]:raise ValueError("authorized candidate tree is stale or wrong")
+    if subprocess.run(("git","merge-base","--is-ancestor",a["base_sha"],a["candidate_sha"]),check=False).returncode:raise ValueError("authorized base is not an ancestor of candidate")
     print(f"pr_number={pr}\nauthorization_sha={authorization}\nauthorization_ref={ref}\nbase_sha={a['base_sha']}\ncandidate_sha={a['candidate_sha']}\ncandidate_tree={a['candidate_tree']}\ncurrent_gate_evidence=verified")
     return a,ref
 def verify_integration(integration,authorization_arg=None,reconcile_live=False):
     require_commit(integration,"integration");authorization=trailer(integration,AUTH_TRAILER);pr=int(trailer(integration,PR_TRAILER))
     if authorization_arg and authorization_arg!=authorization:raise ValueError("supplied authorization differs from integration trailer")
-    a,ref=verify_authorization(authorization,reconcile_live)
+    a,ref=verify_authorization(authorization,False)
+    if reconcile_live:
+        token=os.environ.get("GITHUB_TOKEN");repo=os.environ.get("GITHUB_REPOSITORY")
+        if not token or not repo:raise ValueError("live selected-evidence validation requires GitHub context")
+        records_by_type={gate:json.loads(git("show",f"{commit}:{RECORD_PATH}")) for gate,commit in a["gate_record_commits"].items()}
+        problems=validate_selected_live(repo,pr,token,records_by_type,a["gate_record_commits"])+validate_ci_run(repo,token,a["ci_run_id"],a["candidate_sha"])
+        if problems:raise ValueError("current gate evidence is invalid: "+"; ".join(problems))
     if a["pr_number"]!=pr:raise ValueError("authorization PR differs from integration PR")
     parents=git("show","-s","--format=%P",integration).split()
     if len(parents)!=2 or parents[0]!=a["base_sha"] or parents[1]!=a["candidate_sha"]:raise ValueError("integration parents are not exact authorized base/candidate")

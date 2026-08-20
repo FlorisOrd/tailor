@@ -26,6 +26,6 @@ A PASS record cannot contain a BLOCKING or MAJOR finding. A serious finding prod
 
 Release explicitly selects exactly one current PASS record for each required gate: Independent Code Review, QA, Security Review, and Release. Validation checks exact identity, immutable object, canonical ref, PR-visible copy, disposition, findings, and recorded role separation. Historical records cannot satisfy a current gate.
 
-Before merge, Release runs `scripts/verify_integration.py authorization --authorization <sha> --reconcile-live`. This verifies the selected current gate evidence and exact successful CI run. The integration mode repeats these checks after merge and additionally verifies exact parents and tree.
+Before merge, Release runs `scripts/verify_integration.py authorization --authorization <sha> --reconcile-live`. This fails closed unless the open, unmerged GitHub PR and freshly queried `origin` base/head refs exactly match the authorized PR, base, candidate, and tree; it also verifies ancestry, selected current gate evidence, and the exact successful CI run. The integration mode repeats the evidence and CI checks after merge and additionally verifies exact parents and tree.
 
 REVIEW-05 through REVIEW-08 and their objects, refs, migration binding, and publication audit remain unchanged historical evidence for superseded candidates. They guide regression testing and review, but Release does not normalize or reconcile their formats.
