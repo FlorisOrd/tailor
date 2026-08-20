@@ -1,0 +1,24 @@
+{
+  "schema_version": 2,
+  "gate_record_id": "GATE-REPAIR-10-20260820",
+  "gate_type": "Implementation Repair",
+  "agent_role": "Implementation Repair",
+  "agent_id": "/root",
+  "pr_number": 1,
+  "base_sha": "e030baa34f08a5b0cfd8e1c45d67f45be50f3753",
+  "candidate_sha": "c54aa8df0118919bcc326b4eb1756ce6e72c6788",
+  "candidate_tree": "3a8f1f0c5a63fe857fe9ff756d26d2cd1bef86fe",
+  "timestamp": "2026-08-20T19:29:54Z",
+  "scope": "Successor implementation record explicitly connecting the migration-compatible live-ledger repair to both the underlying REVIEW-06-F1 and REVIEW-07-F1 findings, plus the REVIEW-07-F2 summary correction.",
+  "checks": ["Canonical governance validation passed", "Expanded factory suite passed: 231 tests", "Actual PR #1 ledger integrity passed", "Implementation evidence only; REVIEW-08 remains required"],
+  "findings": [],
+  "repair_claims": [
+    {"source_gate_record_id": "GATE-REVIEW-06-20260820", "source_finding_id": "REVIEW-06-F1", "repaired_candidate_sha": "c54aa8df0118919bcc326b4eb1756ce6e72c6788", "summary": "Added migration-compatible live PR reconciliation so legacy REVIEW-05 and modern immutable records reconcile without rewriting history."},
+    {"source_gate_record_id": "GATE-REVIEW-07-20260820", "source_finding_id": "REVIEW-07-F1", "repaired_candidate_sha": "c54aa8df0118919bcc326b4eb1756ce6e72c6788", "summary": "Added provenance-only legacy binding, strict eligibility, mixed-version normalization, backward v1 lineage, and dual-namespace reconciliation."},
+    {"source_gate_record_id": "GATE-REVIEW-07-20260820", "source_finding_id": "REVIEW-07-F2", "repaired_candidate_sha": "c54aa8df0118919bcc326b4eb1756ce6e72c6788", "summary": "Corrected the durable PR divergence record to zero behind and nine ahead."}
+  ],
+  "rechecks": [],
+  "disposition": "PASS",
+  "repository_state_changed": true,
+  "supersedes": ["GATE-REPAIR-09-20260820"]
+}
