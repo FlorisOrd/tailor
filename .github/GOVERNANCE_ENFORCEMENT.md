@@ -17,6 +17,8 @@ The following files are configured on `bootstrap/agent-company`. They become the
 
 The Lead and Release roles procedurally enforce feature-branch work, exact-candidate identity, merge-commit-only integration, independent roles, evidence freshness, representative non-local high-risk staging, and separate merge/deploy authorizations. The GitHub PR and commit history provide the durable audit trail. Distinct Codex-agent roles may use one GitHub account, so GitHub identity alone cannot prove agent independence; the PR record must identify the separate threads/agents and their dispositions.
 
+Formal gate agents publish schema-valid Gate Record comments themselves. Release creates a candidate-specific immutable authorization commit under `refs/governance/authorizations/`; the governed merge commit references it by trailer and CI verifies exact tuple equality. GitHub Free cannot prevent a repository writer from imitating this procedural ref publication or prove Codex-thread identity, so these controls are auditable but not claimed as protected-branch enforcement.
+
 ## Not Currently Hard-Enforced
 
 GitHub may still technically allow a direct or force push, deletion of `main`, merge with failing checks, self-merge, missing reviews, squash/rebase/fast-forward integration, or dismissal/bypass of review state. It also cannot prevent a moved base or tree mismatch before they occur; CI can only report the condition after an event. Required CI, merge strategy, and reviewer counts are not claimed. The governance workflow and scheduled automation depend on GitHub Actions/Dependabot being enabled and, until this branch is merged, are not controls on `main`.

@@ -1,5 +1,7 @@
 # Engineering Workflow
 
+Critical controls are authoritative in `.github/governance/policy.json`. This document explains their operation and must not contradict that structured policy. Stable IDs include `GOV-ROLE-SEPARATION`, `GOV-SECURITY-INDEPENDENCE`, `GOV-GATE-RECORDS`, `GOV-STALE-EVIDENCE`, and `GOV-EXACT-INTEGRATION`.
+
 ## Operating Roles
 
 - **Lead / Engineering Manager:** plans work, assigns independent roles, tracks risks and gate state, and communicates with the owner. The Lead cannot waive gates or act as Security Review.
@@ -31,6 +33,10 @@ Product request → acceptance criteria → isolated implementation → candidat
 
 Independent Code Review, automated checks, QA/browser/accessibility checks, and Security Review where triggered verify one exact candidate commit SHA. Every repair or other material change creates a new candidate revision and invalidates affected approvals and evidence. Each affected gate must be rerun; alternatively, its independent owner may record why it is unaffected. Release rejects missing, stale, or self-attested evidence.
 
+### Durable Gate Records
+
+Every Independent Code Review, QA, Security Review, and Release gate publishes a JSON Gate Record conforming to `.github/governance/gate-record.schema.json` as a GitHub PR comment created directly by the performing agent. The comment uses a fenced `gate-record` block; corrections are new records linked through `supersedes` / `superseded_by`, never silent edits. The PR body is only a summary and cannot prove a gate. Exported records are validated with `scripts/validate_gate_records.py`, which checks exact identity, findings, staleness, and distinct agents. Release rejects records transcribed or published by another role.
+
 `main` changes require a PR or equivalent durable review record before becoming authoritative. The exact-candidate integration protocol below is procedural on the current GitHub plan; `.github/GOVERNANCE_ENFORCEMENT.md` records the lack of hard enforcement.
 
 ## Exact-Candidate Integration Protocol
@@ -47,11 +53,13 @@ Independent Code Review, QA, triggered Security Review, automated checks, and ot
 
 ### C. Authorization to Merge
 
-Release may issue **AUTHORIZATION TO MERGE** only when candidate evidence is complete and current. This authorizes integration of only the recorded candidate into only the recorded base. It is not authorization to deploy production.
+Release may issue **AUTHORIZATION TO MERGE** only when agent-published Gate Records are complete and current. Release publishes its own PASS Gate Record, then creates an immutable Git authorization commit containing `.github/governance/authorization.json` and publishes it under `refs/governance/authorizations/pr-<number>/<candidate-sha>`. It records exact PR, base, candidate, tree, timestamp, Release identity, and Release Gate Record ID. It authorizes only that tuple and is not authorization to deploy.
 
 ### D. Deterministic Integration
 
-Governed material changes use **MERGE COMMIT ONLY** with fast-forward, squash, and rebase merging prohibited. The integration commit must have the recorded base and candidate as its parents without additional content changes. If `main` moved after base synchronization, stop: update/integrate current `main` into the candidate, create and record a new candidate SHA/tree/base, and rerun affected gates before a new Authorization to Merge.
+Governed material changes use **MERGE COMMIT ONLY** with fast-forward, squash, and rebase merging prohibited. The integration message references the published authorization commit using exactly one `Governance-Authorization: <sha>` trailer. The verifier loads identities from that immutable record: first parent equals authorized base, second parent equals authorized candidate, and candidate and integration trees equal the authorized tree. Related ancestry never substitutes for equality. If `main` moved, stop and create a new candidate and authorization.
+
+GitHub Free cannot technically prove which Codex thread pushed an authorization ref or prevent a writer from imitating the Release procedure. Agent-published Gate Records, Git object/ref history, distinct identities, and Release verification are the strongest practical auditable controls here; they remain procedural.
 
 After merge, record the integration/main commit SHA and tree hash. Verify its parent identities and verify that its tree hash exactly equals the approved candidate tree hash. A different tree, parents, or base condition blocks deployment and requires appropriate renewed verification; never rationalize the mismatch as merge-only metadata.
 

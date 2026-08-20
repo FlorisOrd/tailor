@@ -80,3 +80,14 @@ Use this file for decisions that materially shape architecture, delivery, securi
 - **Alternatives:** Squash/rebase merging loses direct candidate identity; deploying from the candidate bypasses authoritative `main`; both are rejected for governed material work.
 - **Consequences:** A moved base, different tree, non-merge integration, or material candidate change blocks deployment and creates renewed verification work. Current GitHub Free controls report but do not hard-block violations.
 - **Evidence / follow-up:** `WORKFLOW.md`, `.github/PULL_REQUEST_TEMPLATE.md`, `scripts/verify_integration.py`, and `.github/GOVERNANCE_ENFORCEMENT.md`.
+
+## D-007 — Structured factory policy and agent-published evidence
+
+- **Date:** 2026-08-20
+- **Status:** Accepted
+- **Context:** QA-01 proved that prose substring checks, ancestry-based integration checks, and Lead-transcribed review summaries could remain green while critical controls were weakened.
+- **Decision:** Make `.github/governance/policy.json` the canonical machine-readable control source; validate its actual values and relationships with negative mutation tests. Formal gate agents publish schema-valid candidate-specific Gate Records directly to the PR. Release creates an immutable exact-tuple authorization commit under a dedicated Git ref, and integration references it by commit trailer.
+- **Rationale:** Structured invariants and negative tests detect semantic weakening. Agent publication preserves evidence provenance. Exact SHA/tree equality prevents related-but-unauthorized revisions from passing.
+- **Alternatives:** More prose matching, caller-supplied expected SHAs, or PR-body summaries; rejected because Implementation could redefine or transcribe the claimed authority.
+- **Consequences:** Candidate changes stale Gate Records and authorizations. Factory tests and exact authorization verification are mandatory CI. GitHub Free still cannot technically prove Codex-thread identity or prevent a repository writer from imitating the Release ref operation, so role provenance remains an explicit procedural limitation.
+- **Evidence / follow-up:** QA-01; `.github/governance/`; `scripts/validate_governance.py`; `scripts/validate_gate_records.py`; `scripts/verify_integration.py`; `tests/`.

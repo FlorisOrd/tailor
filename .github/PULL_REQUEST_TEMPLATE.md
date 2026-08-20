@@ -29,6 +29,8 @@
 
 ## Independent Roles
 
+The table is a summary only. Each formal gate agent must publish its own schema-valid JSON Gate Record in a fenced `gate-record` PR comment; record the immutable comment link and Gate Record ID below. Lead transcription is not evidence.
+
 | Gate | Agent/thread or durable review link | Candidate SHA | Disposition |
 | --- | --- | --- | --- |
 | Independent Code Review |  |  | Pending |
@@ -36,6 +38,12 @@
 | UX / Accessibility (or approved N/A) |  |  | Pending |
 | Security Review (or trigger assessment) |  |  | Pending |
 | Release |  |  | Pending |
+
+- Independent Review Gate Record ID/comment:
+- QA Gate Record ID/comment:
+- Security Gate Record ID/comment:
+- Release Gate Record ID/comment:
+- Gate Record validator command/result:
 
 - [ ] Implementation, Independent Code Review, QA, and Release are four different threads/agents; no thread occupies more than one role.
 - [ ] If Security is triggered, Security Review is separate from Implementation, Lead/gate authority, QA, and Release.
@@ -92,6 +100,11 @@ For each N/A: record the reason and non-implementer concurrence. A blank cell is
 - Decision and date:
 - Candidate SHA/tree authorized for merge:
 - Recorded base SHA authorized for merge:
+- Authorization record ID:
+- Immutable authorization commit SHA:
+- Published authorization ref (`refs/governance/authorizations/pr-<number>/<candidate-sha>`):
+- Authorization record exact PR/base/candidate/tree/timestamp/Release identity validation:
+- Required integration trailer (`Governance-Authorization: <authorization-commit-sha>`):
 
 ## Integration Record
 
@@ -102,6 +115,7 @@ For each N/A: record the reason and non-implementer concurrence. A blank cell is
 - [ ] Integration tree hash exactly equals the authorized candidate tree hash.
 - Post-integration CI/check evidence:
 - Evidence invalidated, rerun, or independently determined unaffected:
+- Exact authorized-tuple verifier result (authorization/base/candidate/tree/integration equality):
 
 ## Staging and Smoke Verification
 

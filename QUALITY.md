@@ -1,10 +1,12 @@
 # Quality Gates
 
+Critical controls are defined by `.github/governance/policy.json`; prose cannot override that canonical policy.
+
 ## Evidence and Candidate Identity
 
 A claim is not verification. Evidence must identify the recorded base SHA, exact candidate SHA and tree hash, command or procedure, result, environment, and relevant artifact or observation. After integration it must also identify the main integration SHA/tree, parent/base verification, and candidate/integration tree equality. Store the durable summary in the GitHub PR using `.github/PULL_REQUEST_TEMPLATE.md`; chat may assist but is not the record.
 
-Every repair or other material change creates a new candidate. Affected automated tests, review, QA, browser, accessibility, security, and staging evidence must be rerun or explicitly marked unaffected by an independent owner of that gate. Release rejects stale evidence.
+Every repair or other material change creates a new candidate. Affected automated tests, review, QA, browser, accessibility, security, and staging evidence must be rerun or explicitly marked unaffected by an independent owner of that gate. Release rejects stale evidence. Formal gate proof is a JSON Gate Record conforming to `.github/governance/gate-record.schema.json`, published directly in the PR by the performing agent; the PR-body summary is not authoritative. Validate exported records with `scripts/validate_gate_records.py`.
 
 ## Automated Quality Baseline
 
@@ -19,7 +21,7 @@ Before the first material product implementation can be complete, the project mu
 - secret scanning;
 - dependency/software-composition and vulnerability scanning.
 
-Add the commands to this file and `README.md` when the product toolchain is chosen. Do not create fake commands or empty tests. A genuinely inapplicable gate requires a written N/A rationale and approval by a non-implementing role in the PR record. The initial workflow, `.github/workflows/governance.yml`, currently validates repository governance and runs secret scanning; it does not claim to test a product that does not exist.
+Add the commands to this file and `README.md` when the product toolchain is chosen. Do not create fake commands or empty tests. A genuinely inapplicable gate requires a written N/A rationale and approval by a non-implementing role in the PR record. The initial workflow, `.github/workflows/governance.yml`, validates repository governance, runs secret scanning, and runs deterministic factory self-tests under `tests/`; it does not claim to test a product that does not exist. Factory tests cover structured-policy mutations, Gate Record schema/staleness, and exact authorized integration positive and negative cases.
 
 ## Required Gates for Material Changes
 

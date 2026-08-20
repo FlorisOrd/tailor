@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/FlorisOrd/tailor/.github/governance/gate-record.schema.json",
+  "title": "Governance Gate Record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "gate_record_id", "gate_type", "agent_role", "agent_id", "pr_number", "base_sha", "candidate_sha", "candidate_tree", "timestamp", "scope", "checks", "findings", "disposition", "repository_state_changed", "supersedes", "superseded_by"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "gate_record_id": {"type": "string", "pattern": "^GATE-[A-Z0-9][A-Z0-9-]{2,63}$"},
+    "gate_type": {"enum": ["Independent Code Review", "QA", "Security Review", "Release"]},
+    "agent_role": {"type": "string", "minLength": 1},
+    "agent_id": {"type": "string", "minLength": 1},
+    "pr_number": {"type": "integer", "minimum": 1},
+    "base_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "candidate_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "candidate_tree": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "timestamp": {"type": "string", "format": "date-time"},
+    "scope": {"type": "string", "minLength": 1},
+    "checks": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+    "findings": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["finding_id", "severity", "summary", "status"], "properties": {"finding_id": {"type": "string", "minLength": 1}, "severity": {"enum": ["BLOCKING", "MAJOR", "MINOR", "SUGGESTION"]}, "summary": {"type": "string", "minLength": 1}, "status": {"enum": ["OPEN", "CLOSED"]}, "rechecked_by_gate_record_id": {"type": ["string", "null"]}}}},
+    "disposition": {"enum": ["PASS", "FAIL", "PENDING", "N/A"]},
+    "repository_state_changed": {"type": "boolean"},
+    "supersedes": {"type": ["string", "null"]},
+    "superseded_by": {"type": ["string", "null"]}
+  }
+}

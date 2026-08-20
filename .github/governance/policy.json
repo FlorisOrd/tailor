@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "authority": "canonical",
+  "control_ids": {
+    "role_separation": "GOV-ROLE-SEPARATION",
+    "security_independence": "GOV-SECURITY-INDEPENDENCE",
+    "exact_integration": "GOV-EXACT-INTEGRATION",
+    "gate_records": "GOV-GATE-RECORDS",
+    "stale_evidence": "GOV-STALE-EVIDENCE",
+    "high_risk_staging": "GOV-HIGH-RISK-STAGING",
+    "owner_protection": "GOV-OWNER-PROTECTION",
+    "exception_authority": "GOV-EXCEPTION-AUTHORITY",
+    "release_authority": "GOV-RELEASE-AUTHORITY"
+  },
+  "material_work": {
+    "ambiguity_defaults_to_material": true,
+    "categories": ["application_code", "configuration", "dependencies", "data_schema", "infrastructure", "deployment", "governance", "security", "user_experience", "apis", "data_handling", "build_test_tooling", "release_process"]
+  },
+  "roles": {
+    "required": ["Implementation", "Independent Code Review", "QA", "Release"],
+    "mutually_distinct": ["Implementation", "Independent Code Review", "QA", "Release"],
+    "security_distinct_from": ["Implementation", "Lead / Engineering Manager", "QA", "Release"],
+    "release_only_authorities": ["Authorization to Merge", "Authorization to Deploy"]
+  },
+  "non_waivable_controls": ["GOV-ROLE-SEPARATION", "GOV-SECURITY-INDEPENDENCE", "GOV-EXACT-INTEGRATION", "GOV-GATE-RECORDS", "GOV-STALE-EVIDENCE", "GOV-HIGH-RISK-STAGING", "GOV-OWNER-PROTECTION", "GOV-RELEASE-AUTHORITY", "secret_protection", "blocking_major_recheck"] ,
+  "severity": {
+    "BLOCKING": {"blocks": true, "requires_independent_recheck": true},
+    "MAJOR": {"blocks": true, "requires_independent_recheck": true},
+    "MINOR": {"blocks": false, "requires_debt_owner_and_target": true},
+    "SUGGESTION": {"blocks": false, "requires_disposition": true}
+  },
+  "evidence": {
+    "formal_gate_types": ["Independent Code Review", "QA", "Security Review", "Release"],
+    "publisher_must_be_performing_agent": true,
+    "pr_body_is_authoritative": false,
+    "candidate_identity_fields": ["base_sha", "candidate_sha", "candidate_tree"],
+    "required_gate_record_fields": ["schema_version", "gate_record_id", "gate_type", "agent_role", "agent_id", "pr_number", "base_sha", "candidate_sha", "candidate_tree", "timestamp", "scope", "checks", "findings", "disposition", "repository_state_changed", "supersedes", "superseded_by"]
+  },
+  "stale_evidence": {
+    "candidate_change_invalidates": true,
+    "repair_creates_new_candidate": true,
+    "unaffected_requires_independent_gate_owner_record": true
+  },
+  "integration": {
+    "merge_commit_only": true,
+    "parent_count": 2,
+    "exact_first_parent_is_authorized_base": true,
+    "exact_second_parent_is_authorized_candidate": true,
+    "candidate_tree_equals_authorized_tree": true,
+    "integration_tree_equals_authorized_tree": true,
+    "authorization_source": "immutable_git_authorization_commit",
+    "authorization_ref_prefix": "refs/governance/authorizations/",
+    "integration_trailer": "Governance-Authorization",
+    "authorization_required_fields": ["schema_version", "authorization_id", "pr_number", "base_sha", "candidate_sha", "candidate_tree", "timestamp", "release_agent_id", "release_gate_record_id"]
+  },
+  "high_risk_staging": {
+    "required": true,
+    "non_local": true,
+    "isolated": true,
+    "local_substitute_allowed": false,
+    "categories": ["authentication", "authorization", "billing", "personal_data", "persisted_data_migration", "infrastructure", "deployment_security_boundary", "security_sensitive_behavior"]
+  },
+  "owner_boundaries": {
+    "owner_does_not": ["edit_code", "run_commands", "resolve_conflicts", "inspect_logs", "debug", "maintain_code"],
+    "ask_only_for": ["product_behavior", "ux", "branding", "business", "spending", "privacy", "legal_compliance", "irreversible_external_action"]
+  },
+  "exceptions": {
+    "lead_alone_may_approve": false,
+    "non_waivable_controls_may_be_excepted": false
+  },
+  "release": {
+    "release_role_issues_authorization": true,
+    "authorization_is_candidate_specific": true,
+    "authorization_requires_current_gate_records": true,
+    "merge_and_deploy_authorizations_are_separate": true
+  }
+}

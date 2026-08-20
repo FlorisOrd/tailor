@@ -27,6 +27,8 @@ jobs:
           persist-credentials: false
       - name: Validate repository governance
         run: python3 scripts/validate_governance.py
+      - name: Run governance factory self-tests
+        run: python3 -m unittest discover -s tests -p "test_*.py" -v
 
   secret-scan:
     name: Scan committed history for secrets
@@ -77,4 +79,6 @@ jobs:
       - name: Verify merge commit and candidate tree
         env:
           INTEGRATION_SHA: ${{ github.sha }}
-        run: python3 scripts/verify_integration.py integration --integration "$INTEGRATION_SHA"
+        run: |
+          git fetch origin "+refs/governance/authorizations/*:refs/remotes/origin/governance-authorizations/*"
+          python3 scripts/verify_integration.py integration --integration "$INTEGRATION_SHA"

@@ -6,6 +6,8 @@ The product owner defines product outcomes but does not edit, inspect, debug, or
 
 GitHub is the permanent source of truth. Never commit secrets or populated environment files. Use proven, maintainable approaches and record consequential decisions in `DECISIONS.md`.
 
+The authoritative critical-control policy is `.github/governance/policy.json`; prose cannot override it. Formal Review, QA, Security, and Release evidence must use the Gate Record schema and be published directly by the performing agent in the GitHub PR. A Lead-authored summary is never gate proof.
+
 ## Change Control
 
 Treat work as material by default; `WORKFLOW.md` defines the minimum scope. Material changes must use an isolated branch/worktree and a GitHub pull request or equivalent durable review record. Do not commit or push material work directly to `main`.

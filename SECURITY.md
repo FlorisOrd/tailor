@@ -1,5 +1,7 @@
 # Security Governance
 
+Critical security controls are authoritative in `.github/governance/policy.json`; this document explains their application and cannot weaken them.
+
 ## Baseline Rules
 
 - Never commit passwords, tokens, private keys, populated environment files, or production data.

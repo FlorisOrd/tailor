@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Release Authorization",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "authorization_id", "pr_number", "base_sha", "candidate_sha", "candidate_tree", "timestamp", "release_agent_id", "release_gate_record_id"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "authorization_id": {"type": "string", "pattern": "^AUTH-[A-Z0-9][A-Z0-9-]{2,63}$"},
+    "pr_number": {"type": "integer", "minimum": 1},
+    "base_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "candidate_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "candidate_tree": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "timestamp": {"type": "string", "format": "date-time"},
+    "release_agent_id": {"type": "string", "minLength": 1},
+    "release_gate_record_id": {"type": "string", "pattern": "^GATE-[A-Z0-9][A-Z0-9-]{2,63}$"}
+  }
+}
