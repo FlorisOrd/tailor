@@ -113,3 +113,12 @@ Use this file for decisions that materially shape architecture, delivery, securi
 - **Alternatives:** Mutable reciprocal links, selected local refs, or a manifest without an externally protected anchor; rejected. A deletable manifest head adds no deletion proof against the same privileged writer.
 - **Consequences:** GitHub API and remote access are Release dependencies. Current consistency is strongly verifiable; process authorship and privileged pre-observation deletion remain procedural limits.
 - **Evidence / follow-up:** `GATE-REVIEW-06-20260820`, `scripts/validate_evidence.py`, schemas, policy, workflow, and factory tests.
+
+## D-010 — Bind pre-protocol evidence without rewriting it
+
+- **Date:** 2026-08-20
+- **Status:** Accepted
+- **Decision:** Explicitly allowlisted schema-v1 evidence may enter the modern ledger only through an immutable, provenance-only Legacy Evidence Binding in a separate migration namespace. Live comments remain mandatory. One normalization layer supplies backward successor lineage while keeping gate lineage separate from finding closure.
+- **Rationale:** REVIEW-07 showed that REVIEW-05 predates content-addressed publication and cannot honestly acquire a modern declaration or original ref after the fact.
+- **Consequences:** Migration proves content observed at binding time, never prior immutability or approval. Both remote namespaces and live comments must reconcile; modern records cannot claim legacy status.
+- **Evidence / follow-up:** `GATE-REVIEW-07-20260820`; REVIEW-08 must independently verify the implementation.

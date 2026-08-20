@@ -33,3 +33,11 @@ Release validation independently:
 Release embeds the exact active Review, QA, and Security record commit SHAs in its authorization. The integration commit carries `Governance-PR` and `Governance-Authorization` trailers.
 
 No separate manifest is used: without an externally protected anchor, a privileged writer who can delete refs could also delete or repoint a manifest head. Live GitHub-comment plus complete remote-ref reconciliation provides equivalent observable integrity without claiming protection that GitHub Free does not supply.
+
+## Legacy Evidence Binding
+
+Pre-protocol evidence is never rewritten or presented as modern. An explicitly allowlisted historical comment may instead be bound by a provenance-only `Legacy Evidence Binding`. The immutable binding stores the exact legacy JSON, its canonical SHA-256, the raw comment SHA-256, comment and historical candidate identities, and migration observation identity. It is published at `refs/governance/evidence-migrations/pr-<pr>/<legacy-record-id>/<canonical-json-hash>` and is neither a Gate Record nor an approval.
+
+Release enumerates both remote evidence namespaces and re-fetches the live legacy comment. Missing or changed comments, snapshots, hashes, objects, refs, or identities fail closed. Only canonical-policy entries created before the protocol cutoff are eligible, so modern evidence cannot downgrade into legacy mode.
+
+Supported v1 and v2 records are normalized once before graph evaluation. A v1 successor's backward `supersedes` edge participates in gate lineage, but supersession never closes findings. A binding proves the content observed at migration time, not that it was immutable before observation.

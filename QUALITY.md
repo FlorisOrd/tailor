@@ -55,3 +55,5 @@ Tests must be deterministic, isolated, readable, and focused on observable behav
 ## Review Disposition
 
 Use the shared BLOCKING / MAJOR / MINOR / SUGGESTION taxonomy in `WORKFLOW.md`. BLOCKING and MAJOR findings require repair and independent recheck. MINOR findings require repair or tracked debt with owner and target date. Formal-review SUGGESTION dispositions are recorded.
+
+For allowlisted legacy evidence, validation enumerates the remote migration namespace and reconciles the live historical comment, immutable snapshot, hashes, and normalized mixed-version graph. Ledger integrity and release-gate satisfaction are separate results.

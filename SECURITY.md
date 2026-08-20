@@ -44,6 +44,8 @@ Automated scans supplement rather than replace threat analysis. False positives 
 
 Evidence integrity is a trust boundary. Release independently retrieves live PR comments and the complete canonical remote Gate Record namespace. Local cached refs, PR summaries, or a selected record subset are not authoritative. Source disagreement, missing history, unresolved serious findings, or a recheck by the originating/implementing recorded agent blocks release. GitHub Free cannot cryptographically prove process identity or historical non-deletion before observation.
 
+A legacy binding proves only the historical comment content observed and bound at migration time. It does not retroactively prove immutability before observation. Missing or changed legacy comments, bindings, objects, or refs fail closed.
+
 ## Private Reporting
 
 Keep vulnerability details out of public channels. Use a private GitHub security advisory or another owner-approved private channel once configured. Do not publish exploit details before remediation. External disclosure, legal notices, or acceptance of privacy/compliance risk requires owner approval.

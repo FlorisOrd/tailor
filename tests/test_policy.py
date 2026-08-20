@@ -92,7 +92,7 @@ for value in ("OPEN",): cases["missing_finding_status_"+value]=remove(("evidence
 for gate in ("Independent Code Review","QA","Security Review","Release"): cases["missing_gate_"+gate.replace(" ","_")]=remove(("evidence","formal_gate_types"),gate)
 for category in validator.HIGH_RISK: cases["missing_high_risk_"+category]=remove(("high_risk_staging","categories"),category)
 for action in validator.OWNER_DOES_NOT: cases["owner_must_"+action]=remove(("owner_boundaries","owner_does_not"),action)
-for section in ("append_only_graph","finding_lifecycle","live_reconciliation"):
+for section in ("append_only_graph","finding_lifecycle","live_reconciliation","legacy_migration"):
  for key in POLICY["evidence"][section]: cases[f"weaken_{section}_{key}"]=set_value(("evidence",section,key),False)
 for name,mutate in cases.items(): add_case(name,mutate)
 

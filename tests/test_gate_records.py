@@ -34,6 +34,11 @@ class AppendOnlyLifecycleTests(unittest.TestCase):
  def test_stale_candidate_recheck_fails(self):self.assertTrue(validate_set(lifecycle(recheck_candidate="6"*40),BASE,NEW,TREE,1,{"Independent Code Review"}))
  def test_wrong_finding_id_recheck_fails(self):self.assertTrue(validate_set(lifecycle(recheck_fid="OTHER"),BASE,NEW,TREE,1,{"Independent Code Review"}))
  def test_duplicate_id_different_content_fails(self):a=record();b=copy.deepcopy(a);b["scope"]="different";self.assertTrue(validate_set([a,b],BASE,OLD,TREE,1,{"Independent Code Review"}))
+ def test_mixed_v1_v2_backward_lineage_is_normalized(self):
+  old={"schema_version":1,"gate_record_id":"GATE-REVIEW-OLD","gate_type":"Independent Code Review","agent_role":"Independent Code Review","agent_id":"old","pr_number":1,"base_sha":BASE,"candidate_sha":OLD,"candidate_tree":TREE,"timestamp":"2026-08-20T09:00:00Z","scope":"legacy","checks":["x"],"findings":[],"disposition":"FAIL","repository_state_changed":False,"supersedes":None,"superseded_by":None}
+  successor=copy.deepcopy(old);successor.update({"gate_record_id":"GATE-REVIEW-V1-SUCCESSOR","agent_id":"new","candidate_sha":NEW,"timestamp":"2026-08-20T10:00:00Z","disposition":"PASS","supersedes":"GATE-REVIEW-OLD"})
+  self.assertEqual([],validate_set([old,successor],BASE,NEW,TREE,1,{"Independent Code Review"}))
+ def test_unsupported_schema_fails(self):r=record();r["schema_version"]=0;self.assertTrue(validate_record(r))
 
 class ContentAddressTests(unittest.TestCase):
  @classmethod

@@ -160,3 +160,9 @@ For each N/A: record the reason and non-implementer concurrence. A blank cell is
 - Health signals and threshold results:
 - Alerts, regressions, or rollback decision:
 - Recorded post-release verification and Operations disposition:
+
+## Legacy Evidence Migration
+
+- Binding ID / immutable object / canonical migration ref, or N/A:
+- Live historical comment and canonical/raw hash reconciliation:
+- Provenance limitation acknowledged; binding is not approval:

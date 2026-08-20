@@ -40,3 +40,5 @@ When account capabilities allow, configure a `main` ruleset or branch protection
 GitHub settings cannot by themselves guarantee that separate Codex threads performed Implementation, Review, QA, Security, and Release. Keep the durable role/evidence record even after hard branch controls become available.
 
 Any change to the account plan or repository capabilities requires the Lead to reassess this file and record the resulting enforcement decision in `DECISIONS.md`.
+
+Pre-protocol evidence is supported only through canonical-policy allowlisting and immutable provenance bindings in a separate migration ref namespace. Bindings never count as approval and do not strengthen historical guarantees retroactively.

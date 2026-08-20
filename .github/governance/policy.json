@@ -43,7 +43,24 @@
     "append_only_graph": {"backward_edges_only": true, "predecessor_never_mutated": true, "acyclic": true, "no_forks": true, "same_gate_type_for_supersession": true, "same_pr": true, "ordered_timestamp": true, "missing_predecessor_fails": true},
     "finding_lifecycle": {"repair_claim_does_not_close": true, "closure_requires_distinct_rechecker": true, "closure_requires_exact_source_finding": true, "closure_requires_repaired_candidate": true, "failed_recheck_remains_open": true, "wrong_role_cannot_recheck": true},
     "content_addressing": {"required": true, "storage": "immutable_git_commit", "canonical_ref_prefix": "refs/governance/gate-records/", "comment_must_match_stored_json": true, "commit_parent_is_candidate": true},
-    "live_reconciliation": {"github_pr_comments_required": true, "complete_remote_ref_discovery": true, "origin_queried_at_validation_time": true, "local_ref_subset_not_authoritative": true, "source_disagreement_fails": true, "missing_history_fails": true}
+    "live_reconciliation": {"github_pr_comments_required": true, "complete_remote_ref_discovery": true, "origin_queried_at_validation_time": true, "local_ref_subset_not_authoritative": true, "source_disagreement_fails": true, "missing_history_fails": true, "migration_namespace_discovered": true},
+    "legacy_migration": {
+      "append_only": true,
+      "provenance_only": true,
+      "never_approval": true,
+      "legacy_comment_remains_required": true,
+      "exact_snapshot_and_hash_required": true,
+      "mixed_schema_normalization_required": true,
+      "backward_successor_lineage_preserved": true,
+      "supersession_does_not_close_findings": true,
+      "unsupported_schema_fails": true,
+      "modern_downgrade_forbidden": true,
+      "canonical_ref_prefix": "refs/governance/evidence-migrations/",
+      "protocol_cutoff": "2026-08-20T17:30:00Z",
+      "eligible_records": {
+        "GATE-REVIEW-05-20260820": {"comment_id": 5359092776, "schema_versions": [1]}
+      }
+    }
   },
   "stale_evidence": {
     "candidate_change_invalidates": true,

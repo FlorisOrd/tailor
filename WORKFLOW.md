@@ -109,3 +109,5 @@ Minimum smoke checks are: deployed revision identity; startup and health; critic
 Release readiness is demonstrable, not a statement of intent. Where applicable, the PR record must contain a revision-specific rollback or roll-forward procedure; migration and backward-compatibility assessment; backup/restore compatibility; named health signals and thresholds; observation window; alert route and accountable Operations role; rollback triggers; and post-release verification result.
 
 Failed gates return work to the appropriate role. Agents resolve technical failures themselves and ask the owner only when a decision crosses `PRODUCT.md` boundaries. Incidents follow `INCIDENT_RESPONSE.md`.
+
+Pre-protocol evidence uses only the allowlisted, provenance-only legacy binding process in `.github/governance/GATE_RECORDS.md`. The historical comment remains required and unchanged. Migration cannot approve a gate, perform a recheck, or close a finding.

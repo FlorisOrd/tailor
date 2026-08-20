@@ -82,10 +82,18 @@ def validate_legacy_record(r):
         if not valid_sha(r.get(f)):p.append(f"invalid legacy {f}")
     if parse_time(r.get("timestamp")) is None:p.append("invalid legacy timestamp")
     if not isinstance(r.get("findings"),list):p.append("legacy findings must be an array")
+    elif any(not isinstance(f,dict) or not nonempty(f.get("finding_id")) or f.get("severity") not in SEVERITIES or f.get("status") not in {"OPEN","CLOSED"} for f in r["findings"]):p.append("legacy findings are malformed")
+    if r.get("supersedes") is not None and not (isinstance(r.get("supersedes"),str) and ID.fullmatch(r["supersedes"])):p.append("legacy supersedes must be null or one Gate Record ID")
     return p
 
+def predecessor_ids(r):
+    """Normalize supported historical successor fields into backward edges."""
+    value=r.get("supersedes")
+    if r.get("schema_version")==1:return [value] if isinstance(value,str) else []
+    return value if isinstance(value,list) else []
+
 def finding_key(record,finding):return (record["gate_record_id"],finding["finding_id"])
-def validate_graph(records,base,candidate,candidate_tree,pr,required):
+def validate_graph(records,base,candidate,candidate_tree,pr,required,enforce_gates=True):
     p=[]; by_id={}
     for r in records:
         rid=r["gate_record_id"]
@@ -93,8 +101,7 @@ def validate_graph(records,base,candidate,candidate_tree,pr,required):
         else:by_id[rid]=r
     incoming={rid:[] for rid in by_id}
     for r in records:
-        if r.get("schema_version")!=2:continue
-        for prior_id in r["supersedes"]:
+        for prior_id in predecessor_ids(r):
             prior=by_id.get(prior_id)
             if prior is None:p.append(f"missing predecessor: {prior_id}");continue
             incoming[prior_id].append(r["gate_record_id"])
@@ -107,9 +114,8 @@ def validate_graph(records,base,candidate,candidate_tree,pr,required):
     def visit(rid,path):
         if rid in path:p.append(f"evidence cycle at {rid}");return
         r=by_id[rid]
-        if r.get("schema_version")==2:
-            for prior in r["supersedes"]:
-                if prior in by_id:visit(prior,path|{rid})
+        for prior in predecessor_ids(r):
+            if prior in by_id:visit(prior,path|{rid})
     for rid in by_id:visit(rid,set())
     repairs={}; successful=set()
     for r in records:
@@ -133,10 +139,12 @@ def validate_graph(records,base,candidate,candidate_tree,pr,required):
             if recheck["rechecked_candidate_sha"]!=repair["candidate_sha"] or r["candidate_sha"]!=repair["candidate_sha"]:p.append(f"stale-candidate recheck: {key}");valid=False
             if parse_time(r["timestamp"])<=parse_time(repair["timestamp"]):p.append(f"recheck predates repair: {key}");valid=False
             if recheck["outcome"]=="PASS" and valid:successful.add(key)
-    for r in records:
-        for f in r.get("findings",[]):
-            if f.get("severity") in {"BLOCKING","MAJOR"} and finding_key(r,f) not in successful:p.append(f"OPEN {f['severity']} remains blocking: {r['gate_record_id']}/{f['finding_id']}")
-    referenced={x for r in records if r.get("schema_version")==2 for x in r["supersedes"]}; active=[r for r in records if r["gate_record_id"] not in referenced]
+    if enforce_gates:
+        for r in records:
+            for f in r.get("findings",[]):
+                if f.get("severity") in {"BLOCKING","MAJOR"} and f.get("status")!="CLOSED" and finding_key(r,f) not in successful:p.append(f"OPEN {f['severity']} remains blocking: {r['gate_record_id']}/{f['finding_id']}")
+    referenced={x for r in records for x in predecessor_ids(r)}; active=[r for r in records if r["gate_record_id"] not in referenced]
+    if not enforce_gates:return p
     for gate in required:
         matches=[r for r in active if r["gate_type"]==gate]
         if len(matches)!=1:p.append(f"gate must have exactly one active record: {gate}");continue
@@ -167,11 +175,11 @@ def validate_record_object(r,commit):
         elif any(x!=commit for x in found):p.append("exact Gate Record ref points elsewhere")
     except (ValueError,json.JSONDecodeError) as e:p.append(f"invalid Gate Record object: {e}")
     return p
-def validate_set(records,base,candidate,candidate_tree,pr,required,commits=None):
+def validate_set(records,base,candidate,candidate_tree,pr,required,commits=None,enforce_gates=True):
     p=[]
     for r in records:p.extend(f"{r.get('gate_record_id')}: {x}" for x in validate_record(r))
     if p:return p
-    p.extend(validate_graph(records,base,candidate,candidate_tree,pr,required))
+    p.extend(validate_graph(records,base,candidate,candidate_tree,pr,required,enforce_gates))
     if commits is not None:
         if set(commits)!=set(r["gate_record_id"] for r in records):p.append("record/object ID sets disagree")
         for r in records:

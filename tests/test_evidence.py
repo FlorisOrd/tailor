@@ -2,7 +2,7 @@ import copy,json,os,subprocess,sys,tempfile,unittest
 from unittest.mock import patch
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT/"scripts"))
-from validate_evidence import fetch_remote_records,reconcile
+from validate_evidence import canonical_json,fetch_remote_records,reconcile,sha256_text,validate_binding
 BASE,CANDIDATE,TREE="1"*40,"2"*40,"3"*40
 def record(rid,gate,agent):return {"schema_version":2,"gate_record_id":rid,"gate_type":gate,"agent_role":gate,"agent_id":agent,"pr_number":1,"base_sha":BASE,"candidate_sha":CANDIDATE,"candidate_tree":TREE,"timestamp":"2026-08-20T12:00:00Z","scope":"gate","checks":["checks"],"findings":[],"repair_claims":[],"rechecks":[],"disposition":"PASS","repository_state_changed":False,"supersedes":[]}
 def comment(record,commit,cid=1):return {"id":cid,"user":{"login":"agent"},"body":f"Gate-Record-Commit: {commit}\n\n```gate-record\n{json.dumps(record,sort_keys=True)}\n```"}
@@ -19,6 +19,29 @@ class VisibleReconciliationTests(unittest.TestCase):
  def test_authoritative_record_missing_visible_fails(self):r,c,v=fixture();self.assertTrue(self.check(v[:-1],r,c))
  def test_visible_record_missing_authoritative_fails(self):r,c,v=fixture();self.assertTrue(self.check(v,r[:-1],{k:x for k,x in c.items() if k!=r[-1]["gate_record_id"]}))
  def test_another_candidate_visible_object_fails(self):r,c,v=fixture();changed=copy.deepcopy(r[0]);changed["candidate_sha"]="8"*40;v[0]=comment(changed,c[r[0]["gate_record_id"]]);self.assertTrue(self.check(v,r,c))
+
+def legacy_record():
+ return {"schema_version":1,"gate_record_id":"GATE-REVIEW-05-20260820","gate_type":"Independent Code Review","agent_role":"Independent Code Review","agent_id":"legacy-reviewer","pr_number":1,"base_sha":BASE,"candidate_sha":"4"*40,"candidate_tree":"5"*40,"timestamp":"2026-08-20T16:00:00Z","scope":"legacy","checks":["check"],"findings":[{"finding_id":"F-LEGACY","severity":"MAJOR","summary":"historic","status":"OPEN"}],"disposition":"FAIL","repository_state_changed":False,"supersedes":None,"superseded_by":None}
+def legacy_comment(r=None):
+ r=r or legacy_record();return {"id":5359092776,"html_url":"https://github.com/FlorisOrd/tailor/pull/1#issuecomment-5359092776","body":f"```gate-record\n{json.dumps(r)}\n```","user":{"login":"owner"}}
+def binding(c=None,r=None):
+ c=c or legacy_comment(r);r=r or legacy_record();return {"schema_version":1,"binding_id":"LEGACY-BINDING-REVIEW-05-20260820","record_type":"Legacy Evidence Binding","pr_number":1,"legacy_gate_record_id":r["gate_record_id"],"legacy_schema_version":1,"legacy_comment_id":c["id"],"legacy_comment_url":c["html_url"],"legacy_agent_id":r["agent_id"],"legacy_gate_type":r["gate_type"],"legacy_base_sha":r["base_sha"],"legacy_candidate_sha":r["candidate_sha"],"legacy_candidate_tree":r["candidate_tree"],"legacy_disposition":r["disposition"],"legacy_record":r,"canonical_json_sha256":sha256_text(canonical_json(r)),"raw_comment_sha256":sha256_text(c["body"]),"observed_at":"2026-08-20T20:00:00Z","migration_agent_id":"implementer","migration_candidate_sha":CANDIDATE,"migration_candidate_tree":TREE,"provenance_only":True,"not_approval":True}
+
+class LegacyMigrationTests(unittest.TestCase):
+ def check(self,c=None,b=None):
+  c=c or legacy_comment();b=b or binding(c);return reconcile([c],[],{},BASE,CANDIDATE,TREE,1,set(),{"GATE-REVIEW-05-20260820":{"binding":b,"commit":"a"*40,"ref":"ref"}},False)
+ def test_exact_legacy_binding_passes(self):self.assertEqual([],self.check())
+ def test_missing_binding_fails(self):self.assertTrue(reconcile([legacy_comment()],[],{},BASE,CANDIDATE,TREE,1,set(),{},False))
+ def test_deleted_comment_fails(self):self.assertTrue(reconcile([],[],{},BASE,CANDIDATE,TREE,1,set(),{"GATE-REVIEW-05-20260820":{"binding":binding(),"commit":"a"*40,"ref":"ref"}},False))
+ def test_changed_comment_fails(self):c=legacy_comment();c["body"]+="changed";self.assertTrue(self.check(c,binding()))
+ def test_changed_snapshot_fails(self):b=binding();b["legacy_record"]["scope"]="changed";self.assertTrue(self.check(b=b))
+ def test_wrong_comment_id_fails(self):b=binding();b["legacy_comment_id"]=1;self.assertTrue(self.check(b=b))
+ def test_wrong_gate_id_fails(self):b=binding();b["legacy_gate_record_id"]="GATE-WRONG";self.assertTrue(self.check(b=b))
+ def test_wrong_candidate_fails(self):b=binding();b["legacy_candidate_sha"]="9"*40;self.assertTrue(self.check(b=b))
+ def test_wrong_tree_fails(self):b=binding();b["legacy_candidate_tree"]="9"*40;self.assertTrue(self.check(b=b))
+ def test_migration_cannot_be_gate_pass(self):
+  c=legacy_comment();b=binding(c);self.assertTrue(reconcile([c],[],{},BASE,CANDIDATE,TREE,1,{"Independent Code Review"},{"GATE-REVIEW-05-20260820":{"binding":b,"commit":"a"*40,"ref":"ref"}},True))
+ def test_modern_record_cannot_claim_legacy(self):r=legacy_record();r["gate_record_id"]="GATE-NEW-TODAY";c=legacy_comment(r);self.assertTrue(reconcile([c],[],{},BASE,CANDIDATE,TREE,1,set(),{},False))
 
 class RemoteDiscoveryTests(unittest.TestCase):
  def setUp(self):
