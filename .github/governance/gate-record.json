@@ -1,0 +1,39 @@
+{
+  "schema_version": 2,
+  "gate_record_id": "GATE-REPAIR-09-20260820",
+  "gate_type": "Implementation Repair",
+  "agent_role": "Implementation Repair",
+  "agent_id": "/root",
+  "pr_number": 1,
+  "base_sha": "e030baa34f08a5b0cfd8e1c45d67f45be50f3753",
+  "candidate_sha": "c54aa8df0118919bcc326b4eb1756ce6e72c6788",
+  "candidate_tree": "3a8f1f0c5a63fe857fe9ff756d26d2cd1bef86fe",
+  "timestamp": "2026-08-20T19:25:21Z",
+  "scope": "Legacy REVIEW-05 provenance binding, mixed schema-v1/v2 normalization, backward legacy lineage, dual-namespace reconciliation, policy enforcement, regression tests, cache hygiene, and PR divergence correction.",
+  "checks": [
+    "Canonical governance validation passed",
+    "Expanded factory suite passed: 231 tests",
+    "Actual PR #1 ledger integrity reconciled: four modern records and one legacy migration binding",
+    "Candidate identity and whitespace checks passed",
+    "Implementation and provenance evidence only; independent REVIEW-08 remains required"
+  ],
+  "findings": [],
+  "repair_claims": [
+    {
+      "source_gate_record_id": "GATE-REVIEW-07-20260820",
+      "source_finding_id": "REVIEW-07-F1",
+      "repaired_candidate_sha": "c54aa8df0118919bcc326b4eb1756ce6e72c6788",
+      "summary": "Added an immutable provenance-only legacy binding, strict eligibility, mixed-version normalization, backward v1 lineage, and complete live/dual-remote reconciliation without rewriting REVIEW-05."
+    },
+    {
+      "source_gate_record_id": "GATE-REVIEW-07-20260820",
+      "source_finding_id": "REVIEW-07-F2",
+      "repaired_candidate_sha": "c54aa8df0118919bcc326b4eb1756ce6e72c6788",
+      "summary": "Corrected the durable PR divergence record and recalculated the current candidate as zero behind and nine ahead."
+    }
+  ],
+  "rechecks": [],
+  "disposition": "PASS",
+  "repository_state_changed": true,
+  "supersedes": ["GATE-REPAIR-08-20260820"]
+}
