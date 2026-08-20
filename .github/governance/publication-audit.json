@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "audit_id": "AUDIT-REVIEW-08-PUBLICATION-20260820",
+  "record_type": "Gate Record Publication Correction Audit",
+  "pr_number": 1,
+  "corrected_comment_id": 5361136109,
+  "corrected_comment_url": "https://github.com/FlorisOrd/tailor/pull/1#issuecomment-5361136109",
+  "authoritative_gate_record_id": "GATE-REVIEW-08-20260820",
+  "authoritative_gate_record_commit": "7ccc5e6febe1cf0642a6f57381efe83e5a479b02",
+  "canonical_gate_record_ref": "refs/governance/gate-records/pr-1/c54aa8df0118919bcc326b4eb1756ce6e72c6788/GATE-REVIEW-08-20260820",
+  "base_sha": "e030baa34f08a5b0cfd8e1c45d67f45be50f3753",
+  "candidate_sha": "c54aa8df0118919bcc326b4eb1756ce6e72c6788",
+  "candidate_tree": "3a8f1f0c5a63fe857fe9ff756d26d2cd1bef86fe",
+  "reason": "The original PR-visible payload was empty because the elevated publication process encountered a Git repository ownership error while reading the already-created immutable Gate Record.",
+  "authorization": "Explicit product-owner authorization was provided for one narrowly scoped corrective edit to comment 5361136109.",
+  "scope": "Only the PR-visible representation in comment 5361136109 was corrected to match the authoritative immutable Gate Record. No other comment, immutable Gate Record content, canonical Gate Record ref, finding, verdict, implementation file, or branch was changed.",
+  "before_reconciliation": "FAIL: comment 5361136109 declared the authoritative commit but contained an empty Gate Record payload.",
+  "after_reconciliation": "PASS: comment 5361136109 declares the authoritative commit and its parsed Gate Record JSON exactly equals the immutable object JSON.",
+  "approval_semantics": "This audit is not a new review, PASS, finding closure, QA approval, Security approval, Release authorization, or replacement review result.",
+  "timestamp": "2026-08-20T20:34:47Z",
+  "agent_id": "REVIEW-08 Factory Governance Verification",
+  "repository_state_changed": false
+}
