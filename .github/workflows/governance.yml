@@ -81,4 +81,5 @@ jobs:
           INTEGRATION_SHA: ${{ github.sha }}
         run: |
           git fetch origin "+refs/governance/authorizations/*:refs/remotes/origin/governance-authorizations/*"
+          git fetch origin "+refs/governance/gate-records/*:refs/remotes/origin/governance-gate-records/*"
           python3 scripts/verify_integration.py integration --integration "$INTEGRATION_SHA"

@@ -1,8 +1,10 @@
 # Gate Record Protocol
 
-Formal Independent Code Review, QA, Security Review, and Release evidence is a JSON object conforming to `gate-record.schema.json`. The agent performing the gate must publish its own record as a top-level PR comment in this form:
+Formal gate evidence is JSON conforming to `gate-record.schema.json`. Before commenting, the performing agent creates an immutable commit whose sole parent is the candidate and whose `.github/governance/gate-record.json` is exactly that JSON. It publishes the commit at exactly `refs/governance/gate-records/pr-<pr>/<candidate>/<gate-record-id>`, then publishes its own PR comment:
 
 ~~~markdown
+Gate-Record-Commit: <40-character commit SHA>
+
 ```gate-record
 {
   "schema_version": 1,
@@ -26,8 +28,10 @@ Formal Independent Code Review, QA, Security Review, and Release evidence is a J
 ```
 ~~~
 
-The publishing agent records findings in the same record. BLOCKING and MAJOR findings remain open until a new independent Gate Record closes them and names the recheck. Never edit a prior record to change its disposition; publish a new linked record. Candidate changes make prior records stale even when their history remains useful.
+The validator requires comment/export JSON, stored JSON, commit parent, object SHA, and exact canonical ref to agree. A different or moved ref, altered JSON, reused ID, or another candidate fails closed.
 
-Before authorization, Release exports the agent-authored JSON records without rewriting them and runs `scripts/validate_gate_records.py` for the exact PR/base/candidate/tree and required gates. Release publishes its own Gate Record only after validation passes.
+BLOCKING and MAJOR findings remain open until a later reciprocal successor carries the same finding ID as `CLOSED` and names its rechecking Gate Record. Links must exist, be reciprocal, preserve PR and gate type, advance candidate and timestamp, and remain acyclic. Never edit old evidence; candidate changes make it stale without erasing defect history.
 
-Release then creates `.github/governance/authorization.json` in a dedicated immutable authorization commit whose sole parent is the exact candidate (the authorization file is not in the candidate tree), publishes it under `refs/governance/authorizations/pr-<pr>/<candidate>`, and places its SHA in the integration commit's `Governance-Authorization` trailer. Do not move or reuse an authorization ref. Any changed candidate requires a new Gate Record set, authorization ID, commit, and ref.
+Before authorization, Release fetches and validates the complete `refs/governance/gate-records/pr-<pr>/` ledger, not a selected subset. This keeps every historical OPEN BLOCKING/MAJOR finding visible until a valid successor closes it. Release publishes its own Gate Record only after the complete graph passes.
+
+Release records the exact Review, QA, and Security Gate Record commit SHAs in the authorization. It creates `.github/governance/authorization.json` in a dedicated candidate-parent commit, publishes it exactly at `refs/governance/authorizations/pr-<pr>/<candidate>`, and adds `Governance-PR: <pr>` plus `Governance-Authorization: <sha>` to the integration commit. Never move or reuse evidence refs.

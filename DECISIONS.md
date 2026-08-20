@@ -91,3 +91,14 @@ Use this file for decisions that materially shape architecture, delivery, securi
 - **Alternatives:** More prose matching, caller-supplied expected SHAs, or PR-body summaries; rejected because Implementation could redefine or transcribe the claimed authority.
 - **Consequences:** Candidate changes stale Gate Records and authorizations. Factory tests and exact authorization verification are mandatory CI. GitHub Free still cannot technically prove Codex-thread identity or prevent a repository writer from imitating the Release ref operation, so role provenance remains an explicit procedural limitation.
 - **Evidence / follow-up:** QA-01; `.github/governance/`; `scripts/validate_governance.py`; `scripts/validate_gate_records.py`; `scripts/verify_integration.py`; `tests/`.
+
+## D-008 — Exact evidence refs and content-addressed Gate Records
+
+- **Date:** 2026-08-20
+- **Status:** Accepted
+- **Context:** REVIEW-05 showed that namespace membership, shallow nested validation, fabricated supersession, and mutable-only PR comments could undermine the intended factory controls.
+- **Decision:** Derive authorization and Gate Record refs exactly from PR/candidate/record identity; require exact ref-to-commit equality. Store each Gate Record in an immutable candidate-parent commit and require PR-visible JSON to match it. Validate the full record recursively, enforce reciprocal acyclic supersession, and preserve every open serious finding until a successor carries durable closure/recheck evidence. Embed exact Review/QA/Security evidence commits in Release authorization.
+- **Rationale:** Content addressing detects mutation while graph validation prevents history erasure. Exact refs prevent reuse or substitution of related evidence.
+- **Alternatives:** Accept any namespace ref, trust non-null supersession strings, or use mutable comments alone; rejected as fail-open.
+- **Consequences:** Evidence publication uses both Git objects and PR comments. The test suite mutates every critical policy contract. GitHub Free still cannot cryptographically identify the originating Codex process or stop an authorized repository writer from imitating a procedural role.
+- **Evidence / follow-up:** `GATE-REVIEW-05-20260820`, `.github/governance/`, `scripts/`, and `tests/`.

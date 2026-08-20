@@ -6,7 +6,7 @@ The product owner defines product outcomes but does not edit, inspect, debug, or
 
 GitHub is the permanent source of truth. Never commit secrets or populated environment files. Use proven, maintainable approaches and record consequential decisions in `DECISIONS.md`.
 
-The authoritative critical-control policy is `.github/governance/policy.json`; prose cannot override it. Formal Review, QA, Security, and Release evidence must use the Gate Record schema and be published directly by the performing agent in the GitHub PR. A Lead-authored summary is never gate proof.
+The authoritative critical-control policy is `.github/governance/policy.json`; prose cannot override it. Formal gate evidence must be published by its performing agent as matching PR-visible JSON and a content-addressed candidate-parent commit at the exact canonical ref defined in `.github/governance/GATE_RECORDS.md`. A Lead summary or mutable comment alone is never gate proof.
 
 ## Change Control
 

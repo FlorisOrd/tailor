@@ -34,7 +34,12 @@
     "publisher_must_be_performing_agent": true,
     "pr_body_is_authoritative": false,
     "candidate_identity_fields": ["base_sha", "candidate_sha", "candidate_tree"],
-    "required_gate_record_fields": ["schema_version", "gate_record_id", "gate_type", "agent_role", "agent_id", "pr_number", "base_sha", "candidate_sha", "candidate_tree", "timestamp", "scope", "checks", "findings", "disposition", "repository_state_changed", "supersedes", "superseded_by"]
+    "required_gate_record_fields": ["schema_version", "gate_record_id", "gate_type", "agent_role", "agent_id", "pr_number", "base_sha", "candidate_sha", "candidate_tree", "timestamp", "scope", "checks", "findings", "disposition", "repository_state_changed", "supersedes", "superseded_by"],
+    "required_finding_fields": ["finding_id", "severity", "summary", "status", "rechecked_by_gate_record_id"],
+    "finding_severities": ["BLOCKING", "MAJOR", "MINOR", "SUGGESTION"],
+    "finding_statuses": ["OPEN", "CLOSED"],
+    "supersession": {"reciprocal": true, "acyclic": true, "same_gate_type": true, "same_pr": true, "ordered_timestamp": true, "open_serious_findings_survive": true},
+    "content_addressing": {"required": true, "storage": "immutable_git_commit", "canonical_ref_prefix": "refs/governance/gate-records/", "comment_must_match_stored_json": true, "commit_parent_is_candidate": true}
   },
   "stale_evidence": {
     "candidate_change_invalidates": true,
@@ -51,7 +56,11 @@
     "authorization_source": "immutable_git_authorization_commit",
     "authorization_ref_prefix": "refs/governance/authorizations/",
     "integration_trailer": "Governance-Authorization",
-    "authorization_required_fields": ["schema_version", "authorization_id", "pr_number", "base_sha", "candidate_sha", "candidate_tree", "timestamp", "release_agent_id", "release_gate_record_id"]
+    "pr_trailer": "Governance-PR",
+    "authorization_required_fields": ["schema_version", "authorization_id", "pr_number", "base_sha", "candidate_sha", "candidate_tree", "timestamp", "release_agent_id", "release_gate_record_id", "gate_record_commits"],
+    "canonical_ref_must_equal_authorization": true,
+    "authorization_commit_parent_is_candidate": true,
+    "release_identity_fields": ["base_sha", "candidate_sha", "candidate_tree", "authorization_commit_sha", "canonical_authorization_ref", "integration_sha", "integration_tree"]
   },
   "high_risk_staging": {
     "required": true,
@@ -61,8 +70,9 @@
     "categories": ["authentication", "authorization", "billing", "personal_data", "persisted_data_migration", "infrastructure", "deployment_security_boundary", "security_sensitive_behavior"]
   },
   "owner_boundaries": {
-    "owner_does_not": ["edit_code", "run_commands", "resolve_conflicts", "inspect_logs", "debug", "maintain_code"],
-    "ask_only_for": ["product_behavior", "ux", "branding", "business", "spending", "privacy", "legal_compliance", "irreversible_external_action"]
+    "owner_does_not": ["edit_code", "run_commands", "perform_git_operations", "resolve_conflicts", "inspect_logs", "interpret_logs", "debug", "maintain_code"],
+    "ask_only_for": ["product_behavior", "ux", "branding", "business", "spending", "privacy", "legal_compliance", "irreversible_external_action"],
+    "routine_technical_autonomy": "agents"
   },
   "exceptions": {
     "lead_alone_may_approve": false,
@@ -72,6 +82,14 @@
     "release_role_issues_authorization": true,
     "authorization_is_candidate_specific": true,
     "authorization_requires_current_gate_records": true,
-    "merge_and_deploy_authorizations_are_separate": true
+    "merge_and_deploy_authorizations_are_separate": true,
+    "required_gate_record_types": ["Independent Code Review", "QA", "Security Review"]
+  },
+  "finding_policy": {
+    "approval_blocking_severities": ["BLOCKING", "MAJOR"],
+    "repair_required_severities": ["BLOCKING", "MAJOR"],
+    "independent_recheck_required_severities": ["BLOCKING", "MAJOR"],
+    "minor_requires_debt_owner_and_target": true,
+    "suggestion_requires_disposition": true
   }
 }

@@ -44,6 +44,8 @@ The table is a summary only. Each formal gate agent must publish its own schema-
 - Security Gate Record ID/comment:
 - Release Gate Record ID/comment:
 - Gate Record validator command/result:
+- Content-addressed Gate Record commit SHAs and exact canonical refs:
+- PR-comment JSON equals stored Gate Record JSON:
 
 - [ ] Implementation, Independent Code Review, QA, and Release are four different threads/agents; no thread occupies more than one role.
 - [ ] If Security is triggered, Security Review is separate from Implementation, Lead/gate authority, QA, and Release.
@@ -105,6 +107,8 @@ For each N/A: record the reason and non-implementer concurrence. A blank cell is
 - Published authorization ref (`refs/governance/authorizations/pr-<number>/<candidate-sha>`):
 - Authorization record exact PR/base/candidate/tree/timestamp/Release identity validation:
 - Required integration trailer (`Governance-Authorization: <authorization-commit-sha>`):
+- Required PR trailer (`Governance-PR: <pr-number>`):
+- Exact Review/QA/Security Gate Record commit identities embedded in authorization:
 
 ## Integration Record
 

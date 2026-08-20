@@ -35,7 +35,7 @@ Independent Code Review, automated checks, QA/browser/accessibility checks, and 
 
 ### Durable Gate Records
 
-Every Independent Code Review, QA, Security Review, and Release gate publishes a JSON Gate Record conforming to `.github/governance/gate-record.schema.json` as a GitHub PR comment created directly by the performing agent. The comment uses a fenced `gate-record` block; corrections are new records linked through `supersedes` / `superseded_by`, never silent edits. The PR body is only a summary and cannot prove a gate. Exported records are validated with `scripts/validate_gate_records.py`, which checks exact identity, findings, staleness, and distinct agents. Release rejects records transcribed or published by another role.
+Every formal gate agent stores its exact JSON Gate Record in an immutable candidate-parent commit under the deterministic ref defined in `.github/governance/GATE_RECORDS.md`, then publishes a PR comment containing that object SHA and identical fenced JSON. Corrections are reciprocal successor records, never edits. The validator checks recursive schema, object/ref/content equality, the supersession graph, unresolved serious findings, freshness, and distinct roles. The PR body is only a summary.
 
 `main` changes require a PR or equivalent durable review record before becoming authoritative. The exact-candidate integration protocol below is procedural on the current GitHub plan; `.github/GOVERNANCE_ENFORCEMENT.md` records the lack of hard enforcement.
 
@@ -57,7 +57,7 @@ Release may issue **AUTHORIZATION TO MERGE** only when agent-published Gate Reco
 
 ### D. Deterministic Integration
 
-Governed material changes use **MERGE COMMIT ONLY** with fast-forward, squash, and rebase merging prohibited. The integration message references the published authorization commit using exactly one `Governance-Authorization: <sha>` trailer. The verifier loads identities from that immutable record: first parent equals authorized base, second parent equals authorized candidate, and candidate and integration trees equal the authorized tree. Related ancestry never substitutes for equality. If `main` moved, stop and create a new candidate and authorization.
+Governed material changes use **MERGE COMMIT ONLY** with fast-forward, squash, and rebase merging prohibited. The integration message contains exactly one `Governance-PR: <pr>` and one `Governance-Authorization: <sha>` trailer. The verifier derives the only valid authorization ref from the record's PR and candidate, requires exact ref equality, validates the authorized Gate Record objects, and checks exact parents and trees. Namespace membership and ancestry never substitute for equality.
 
 GitHub Free cannot technically prove which Codex thread pushed an authorization ref or prevent a writer from imitating the Release procedure. Agent-published Gate Records, Git object/ref history, distinct identities, and Release verification are the strongest practical auditable controls here; they remain procedural.
 

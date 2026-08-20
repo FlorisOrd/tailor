@@ -21,7 +21,9 @@ Before the first material product implementation can be complete, the project mu
 - secret scanning;
 - dependency/software-composition and vulnerability scanning.
 
-Add the commands to this file and `README.md` when the product toolchain is chosen. Do not create fake commands or empty tests. A genuinely inapplicable gate requires a written N/A rationale and approval by a non-implementing role in the PR record. The initial workflow, `.github/workflows/governance.yml`, validates repository governance, runs secret scanning, and runs deterministic factory self-tests under `tests/`; it does not claim to test a product that does not exist. Factory tests cover structured-policy mutations, Gate Record schema/staleness, and exact authorized integration positive and negative cases.
+Add the commands to this file and `README.md` when the product toolchain is chosen. Do not create fake commands or empty tests. A genuinely inapplicable gate requires a written N/A rationale and approval by a non-implementing role in the PR record. The initial workflow, `.github/workflows/governance.yml`, validates repository governance, runs secret scanning, and runs deterministic factory self-tests under `tests/`; it does not claim to test a product that does not exist. Factory tests cover structured-policy mutations, Gate Record integrity/supersession/staleness, and exact-ref authorized integration positive and negative cases.
+
+Factory learning rule: every technically testable defect found by Review, QA, Security, or Release normally receives a permanent security-property regression test before repair is complete.
 
 ## Required Gates for Material Changes
 

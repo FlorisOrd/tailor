@@ -18,7 +18,7 @@
     "timestamp": {"type": "string", "format": "date-time"},
     "scope": {"type": "string", "minLength": 1},
     "checks": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
-    "findings": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["finding_id", "severity", "summary", "status"], "properties": {"finding_id": {"type": "string", "minLength": 1}, "severity": {"enum": ["BLOCKING", "MAJOR", "MINOR", "SUGGESTION"]}, "summary": {"type": "string", "minLength": 1}, "status": {"enum": ["OPEN", "CLOSED"]}, "rechecked_by_gate_record_id": {"type": ["string", "null"]}}}},
+    "findings": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["finding_id", "severity", "summary", "status", "rechecked_by_gate_record_id"], "properties": {"finding_id": {"type": "string", "minLength": 1}, "severity": {"enum": ["BLOCKING", "MAJOR", "MINOR", "SUGGESTION"]}, "summary": {"type": "string", "minLength": 1}, "status": {"enum": ["OPEN", "CLOSED"]}, "rechecked_by_gate_record_id": {"type": ["string", "null"]}}}},
     "disposition": {"enum": ["PASS", "FAIL", "PENDING", "N/A"]},
     "repository_state_changed": {"type": "boolean"},
     "supersedes": {"type": ["string", "null"]},
