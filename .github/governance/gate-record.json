@@ -1,0 +1,74 @@
+{
+  "schema_version": 2,
+  "gate_record_id": "GATE-REVIEW-08-20260820",
+  "gate_type": "Independent Code Review",
+  "agent_role": "Independent Code Review",
+  "agent_id": "REVIEW-08 Factory Governance Verification",
+  "pr_number": 1,
+  "base_sha": "e030baa34f08a5b0cfd8e1c45d67f45be50f3753",
+  "candidate_sha": "c54aa8df0118919bcc326b4eb1756ce6e72c6788",
+  "candidate_tree": "3a8f1f0c5a63fe857fe9ff756d26d2cd1bef86fe",
+  "timestamp": "2026-08-20T20:10:44Z",
+  "scope": "Independent adversarial review of the exact REVIEW-07 repair candidate, provenance-only REVIEW-05 migration binding, live mixed-schema PR ledger, truncation and downgrade resistance, factory tests, remote CI, and governance regression controls.",
+  "checks": [
+    "Verified PR #1 is open, draft, and unmerged; GitHub head, local head, and origin branch equal the candidate; origin/main equals the base; the candidate tree is exact; base is an ancestor; divergence is 0 behind and 9 ahead; the worktree was clean before publication.",
+    "Reviewed exact diff 82795242c773515c765dc8f49d88cb4ed492f01e..c54aa8df0118919bcc326b4eb1756ce6e72c6788 and affected policy, schemas, validators, workflow, documentation, and tests; no product code was introduced.",
+    "Verified live REVIEW-05 comment 5359092776, canonical hash 6c659e953ef64b1ba2d30d5392b501b15292db577ce7d71609bf8a0fdb611f4a, raw-comment hash e1195a1dd0ca8c5064fa5d2280de78cd99e1b23c1152f94e0dbdae1e5f7bb4cb, migration object e2ee95116d2e2b89b56ae54a59b159949548f27f, and canonical migration ref; the real ledger integrity validator passed against live GitHub comments and both complete origin namespaces.",
+    "Confirmed provenance-only semantics, strict exact REVIEW-05 eligibility, live-comment reconciliation, mixed v1/v2 backward lineage, namespace discovery, source disagreement failure, and supersession remaining distinct from finding closure.",
+    "Adversarially mutated the binding ID, observation timestamp, and migration candidate tree; validate_binding returned no problems for all three. Code inspection confirmed fetch_migrations accepts a replacement commit at the same canonical legacy-hash ref when its parent merely equals the replacement object's self-declared migration candidate.",
+    "Historical current-candidate outcomes: REVIEW-05-F1 repaired and independently rechecked in code; REVIEW-05-F2 repaired and independently rechecked in code; REVIEW-05-F3 repaired and independently rechecked in code; REVIEW-06-F1 still open; REVIEW-06-F2 repaired and independently rechecked in code; REVIEW-07-F1 still open; REVIEW-07-F2 minor corrected.",
+    "The real ledger preserves REVIEW-05, REVIEW-06, and REVIEW-07, but REVIEW-05-F1 and REVIEW-05-F3 lack modern exact repair/recheck edges; REVIEW-06's legacy CLOSED copies do not close REVIEW-05's original OPEN findings under the documented supersession-does-not-close rule.",
+    "Ran the full factory suite with an official temporary Python 3.13.7 runtime: 231 tests passed in 106.846 seconds; cache artifacts remained ignored and the worktree remained clean.",
+    "Inspected GitHub Actions run 32408398957 for the exact candidate: governance validation including the 231-test suite, candidate identity, and Gitleaks passed; integration verification was correctly skipped for pull_request; workflow has no continue-on-error or silent-success fallback.",
+    "Confirmed the PR body has a stale CI identity statement: its evidence table names run 32408398957 for the current candidate, while the following paragraph incorrectly names run 32405167159 as the exact-current-candidate run."
+  ],
+  "findings": [
+    {
+      "finding_id": "REVIEW-08-F1",
+      "severity": "MAJOR",
+      "summary": "scripts/validate_evidence.py lines 80-103 do not validate migration-object identity or several required provenance fields. Wrong binding_id, malformed observed_at, and an arbitrary valid migration_candidate_tree are accepted; fetch_migrations keys the canonical ref only by the legacy JSON hash and trusts the replacement object's self-declared parent. A writer can move the migration ref to a different commit with altered migration provenance while complete-ledger validation still passes. Validate the full binding schema and deterministic binding ID, timestamp/cutoff, exact migration candidate/tree relationship, expected immutable object identity or an append-only declaration that binds it, and add moved-ref/wrong-object regression tests.",
+      "status": "OPEN"
+    },
+    {
+      "finding_id": "REVIEW-08-F2",
+      "severity": "MAJOR",
+      "summary": "The real append-only ledger has no valid modern repair/recheck edges for REVIEW-05-F1 or REVIEW-05-F3. REVIEW-06 only republishes those finding IDs as CLOSED inside its own legacy record; because finding identity includes the source Gate Record and supersession does not close predecessor findings, REVIEW-05's original OPEN MAJOR facts remain unresolved. Publish exact implementation repair claims and distinct independent rechecks for the original REVIEW-05 finding keys, and add a real-ledger regression proving every historical serious finding has a valid lifecycle.",
+      "status": "OPEN"
+    },
+    {
+      "finding_id": "REVIEW-08-F3",
+      "severity": "MINOR",
+      "summary": "The PR work record's current CI evidence is contradictory: the evidence table correctly cites run 32408398957, but the next paragraph calls older run 32405167159 the exact-current-candidate run. Correct the stale paragraph and explicitly label the older run historical before Release authorization.",
+      "status": "OPEN"
+    }
+  ],
+  "repair_claims": [],
+  "rechecks": [
+    {
+      "source_gate_record_id": "GATE-REVIEW-06-20260820",
+      "source_finding_id": "REVIEW-06-F1",
+      "repair_gate_record_id": "GATE-REPAIR-10-20260820",
+      "rechecked_candidate_sha": "c54aa8df0118919bcc326b4eb1756ce6e72c6788",
+      "outcome": "FAIL"
+    },
+    {
+      "source_gate_record_id": "GATE-REVIEW-07-20260820",
+      "source_finding_id": "REVIEW-07-F1",
+      "repair_gate_record_id": "GATE-REPAIR-10-20260820",
+      "rechecked_candidate_sha": "c54aa8df0118919bcc326b4eb1756ce6e72c6788",
+      "outcome": "FAIL"
+    },
+    {
+      "source_gate_record_id": "GATE-REVIEW-07-20260820",
+      "source_finding_id": "REVIEW-07-F2",
+      "repair_gate_record_id": "GATE-REPAIR-10-20260820",
+      "rechecked_candidate_sha": "c54aa8df0118919bcc326b4eb1756ce6e72c6788",
+      "outcome": "PASS"
+    }
+  ],
+  "disposition": "FAIL",
+  "repository_state_changed": false,
+  "supersedes": [
+    "GATE-REVIEW-07-20260820"
+  ]
+}
