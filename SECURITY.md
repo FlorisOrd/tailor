@@ -3,25 +3,41 @@
 ## Baseline Rules
 
 - Never commit passwords, tokens, private keys, populated environment files, or production data.
-- Store secrets in an approved secret manager or local ignored environment; provide redacted examples only.
-- Apply least privilege, deny by default, validate untrusted input, encode output, and use safe framework primitives.
-- Minimize collected data, define retention, protect data in transit and at rest, and avoid sensitive values in logs or analytics.
-- Pin or lock dependencies where supported; review provenance, maintenance, license, and known vulnerabilities.
-- Keep error messages useful without exposing internals, credentials, or personal data.
-- Do not weaken security controls merely to make a test pass.
+- Store secrets in an approved secret manager or ignored local environment; provide redacted examples only.
+- Apply least privilege and deny by default; validate untrusted input, encode output, and use safe framework primitives.
+- Minimize collected data, define retention, protect data in transit and at rest, and exclude sensitive values from logs and analytics.
+- Keep errors useful without exposing internals, credentials, or personal data.
+- Never weaken a security control merely to make a test pass.
 
-## Mandatory Security Review Triggers
+Secret protection is non-waivable. Suspected exposure follows `INCIDENT_RESPONSE.md`.
 
-A dedicated Security Review by an agent other than the implementer is required for authentication, authorization, session management, billing or payments, personal or regulated data, file uploads, external APIs or webhooks, secrets or cryptography, database access or migrations, privilege boundaries, executable content, dependency or infrastructure changes, public endpoints, and any change that alters trust boundaries.
+## Mandatory Security Review and Independence
 
-## Review Evidence
+Dedicated Security Review is required for authentication, authorization, sessions, billing/payments, personal or regulated data, uploads, external APIs or webhooks, secrets or cryptography, databases or migrations, privilege boundaries, executable content, dependencies, infrastructure, public endpoints, and any changed trust boundary.
 
-Security Review records the data and trust boundaries, plausible abuse cases, access-control behavior, input and output handling, secret handling, dependency or vulnerability results, logging and privacy impact, failure modes, and required mitigations. Use automated scanners where appropriate, but do not treat a clean scan as complete threat analysis.
+For a triggered change, Security Review must be a different Codex thread/agent from Implementation, Lead/gate owner, QA, and Release. It records threat and data boundaries, plausible abuse cases, access-control behavior, input/output handling, secret handling, dependencies, logging/privacy impact, failure modes, and mitigations. Every security-relevant repair creates a new candidate and must be rechecked by Security Review.
 
-Critical or high-risk findings block release. Medium-risk findings require repair or a documented, time-bounded exception with compensating controls. Product-owner approval is required when accepting risk could affect privacy, legal/compliance duties, spending, customers, or irreversible external actions.
+## Secrets and Supply Chain
 
-## Incident Handling
+`.github/workflows/governance.yml` configures Gitleaks secret scanning for pushes, pull requests, manual runs, and a weekly schedule. This configuration is not a required check without branch protection and scheduled runs do not operate from this feature branch; current enforcement status is documented in `.github/GOVERNANCE_ENFORCEMENT.md`.
 
-Agents must avoid copying exposed secrets into issues, commits, or chat. If exposure is suspected: stop propagation, preserve non-sensitive evidence, rotate or revoke the credential through an authorized channel, assess Git history and downstream systems, and document remediation. Rewriting shared history or making external disclosures requires explicit owner approval because those actions may be irreversible or legally consequential.
+When code or dependencies exist, CI must also run an appropriate dependency/SCA and vulnerability scanner on pull requests and at least weekly. Dependency additions or updates require:
 
-Report vulnerabilities privately through a repository security advisory or another owner-approved private channel once one is configured. Do not publish exploit details before remediation.
+- deterministic, integrity-checked lockfiles where the ecosystem supports them;
+- review of direct and material transitive changes;
+- vulnerability results and documented disposition;
+- provenance, maintenance, and license review proportionate to risk;
+- pinned third-party CI actions by full commit SHA;
+- an update to `.github/dependabot.yml` or an equivalent scheduler for every supported ecosystem.
+
+Until an ecosystem is selected, no dependency scanner is claimed active. The first dependency-bearing change is incomplete until it supplies canonical install/audit commands, CI scanning, lockfile policy, and scheduled rescanning.
+
+## Security Severity Thresholds
+
+Use the shared taxonomy in `WORKFLOW.md`. Confirmed secret exposure, active compromise, exploitable critical vulnerability, authorization bypass, or material personal-data exposure is BLOCKING. High-severity exploitable vulnerabilities and material defense failures are at least MAJOR. BLOCKING and MAJOR findings block approval/release and require independent Security recheck. Medium or lower findings map to MAJOR, MINOR, or SUGGESTION based on exploitability and impact; MINOR acceptance requires tracked debt, owner, target date, and compensating controls where relevant.
+
+Automated scans supplement rather than replace threat analysis. False positives require documented evidence and Security Review disposition; they are not silently ignored.
+
+## Private Reporting
+
+Keep vulnerability details out of public channels. Use a private GitHub security advisory or another owner-approved private channel once configured. Do not publish exploit details before remediation. External disclosure, legal notices, or acceptance of privacy/compliance risk requires owner approval.
