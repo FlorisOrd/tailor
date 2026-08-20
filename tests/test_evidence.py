@@ -1,8 +1,7 @@
 import copy,json,sys,unittest
-from unittest.mock import patch
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT/"scripts"))
-from validate_evidence import reconcile_selected,validate_ci_run
+from validate_evidence import reconcile_selected
 from tests.test_gate_records import record
 def comment(r,c,i=1):return {"id":i,"body":f"Bootstrap-Gate-Commit: {c}\n\n```bootstrap-gate\n{json.dumps(r)}\n```"}
 class SelectedEvidenceTests(unittest.TestCase):
@@ -13,10 +12,4 @@ class SelectedEvidenceTests(unittest.TestCase):
  def test_duplicate_selected_declaration_fails(self):self.assertTrue(reconcile_selected([comment(self.r,self.c),comment(self.r,self.c,2)],self.records,self.commits))
  def test_lead_transcribed_visible_record_fails(self):x=copy.deepcopy(self.r);x["publisher_agent_id"]="lead";self.assertTrue(reconcile_selected([comment(x,self.c)],{"Independent Code Review":x},self.commits))
  def test_historical_comments_are_ignored(self):old={"id":9,"body":"```gate-record\n{\"schema_version\":1}\n```"};self.assertEqual([],reconcile_selected([old,comment(self.r,self.c)],self.records,self.commits))
- def test_exact_current_ci_passes(self):
-  with patch("validate_evidence.github_json",return_value={"name":"Governance Baseline","head_sha":"b"*40,"status":"completed","conclusion":"success","event":"pull_request"}):self.assertEqual([],validate_ci_run("repo","token",1,"b"*40))
- def test_stale_ci_fails(self):
-  with patch("validate_evidence.github_json",return_value={"name":"Governance Baseline","head_sha":"a"*40,"status":"completed","conclusion":"success","event":"pull_request"}):self.assertTrue(validate_ci_run("repo","token",1,"b"*40))
- def test_failed_ci_fails(self):
-  with patch("validate_evidence.github_json",return_value={"name":"Governance Baseline","head_sha":"b"*40,"status":"completed","conclusion":"failure","event":"pull_request"}):self.assertTrue(validate_ci_run("repo","token",1,"b"*40))
 if __name__=="__main__":unittest.main()

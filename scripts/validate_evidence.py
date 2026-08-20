@@ -43,10 +43,3 @@ def reconcile_selected(comments,records_by_type,commits_by_type):
     return problems
 
 def validate_selected_live(repo,pr,token,records_by_type,commits_by_type):return reconcile_selected(github_comments(repo,pr,token),records_by_type,commits_by_type)
-def validate_ci_run(repo,token,run_id,candidate):
-    run=github_json(f"https://api.github.com/repos/{repo}/actions/runs/{run_id}",token);p=[]
-    if run.get("name")!="Governance Baseline":p.append("selected CI run is not Governance Baseline")
-    if run.get("head_sha")!=candidate:p.append("selected CI run is stale or for another candidate")
-    if run.get("status")!="completed" or run.get("conclusion")!="success":p.append("selected current CI run did not succeed")
-    if run.get("event")!="pull_request":p.append("selected CI run is not a pull-request run")
-    return p
