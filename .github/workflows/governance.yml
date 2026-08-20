@@ -80,8 +80,7 @@ jobs:
       - name: Verify merge commit and candidate tree
         env:
           INTEGRATION_SHA: ${{ github.sha }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           git fetch origin "+refs/governance/authorizations/*:refs/remotes/origin/governance-authorizations/*"
           python3 scripts/verify_integration.py integration --integration "$INTEGRATION_SHA" --reconcile-live
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
