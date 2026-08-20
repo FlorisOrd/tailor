@@ -2,7 +2,7 @@
 
 ## Evidence and Candidate Identity
 
-A claim is not verification. Evidence must identify the exact candidate SHA, command or procedure, result, environment, and relevant artifact or observation. Store the durable summary in the GitHub PR using `.github/PULL_REQUEST_TEMPLATE.md`; chat may assist but is not the record.
+A claim is not verification. Evidence must identify the recorded base SHA, exact candidate SHA and tree hash, command or procedure, result, environment, and relevant artifact or observation. After integration it must also identify the main integration SHA/tree, parent/base verification, and candidate/integration tree equality. Store the durable summary in the GitHub PR using `.github/PULL_REQUEST_TEMPLATE.md`; chat may assist but is not the record.
 
 Every repair or other material change creates a new candidate. Affected automated tests, review, QA, browser, accessibility, security, and staging evidence must be rerun or explicitly marked unaffected by an independent owner of that gate. Release rejects stale evidence.
 
@@ -26,12 +26,17 @@ Add the commands to this file and `README.md` when the product toolchain is chos
 1. Acceptance criteria are complete and traceable to checks.
 2. All configured format, lint, static/type, test, build, browser, accessibility, secret, and dependency/security checks pass or have an approved N/A disposition.
 3. Independent Code Review covers the complete candidate diff.
-4. QA verifies acceptance criteria, edge cases, failures, and relevant regressions.
+4. QA verifies acceptance criteria, edge cases, failures, and relevant regressions. Implementation, Independent Code Review, QA, and Release are four different threads/agents.
 5. UX / Accessibility and Security gates pass when triggered.
-6. The exact candidate passes representative pre-release verification.
-7. Release validates evidence completeness and rollback/monitoring readiness.
+6. Release validates candidate/base/tree identity and issues Authorization to Merge; deterministic merge-commit integration then passes integration tree/parent checks and CI.
+7. The integrated revision passes applicable staging checks. High-risk work passes representative non-local isolated pre-production verification.
+8. Release validates evidence completeness and rollback/monitoring readiness and separately issues Authorization to Deploy for the exact integration revision.
 
-Any failing applicable gate blocks completion. Flaky checks are failures until fixed. Non-waivable gates and exception requirements are defined in `WORKFLOW.md`.
+Any failing applicable gate blocks completion. Flaky checks are failures until fixed. The canonical non-waivable list in `WORKFLOW.md` applies in full: no exception can combine Implementation, Independent Code Review, QA, or Release; relax triggered Security independence/recheck; bypass high-risk non-local pre-production verification; or bypass the other listed integrity and authorization controls.
+
+## Integration Evidence
+
+Final candidate evidence is valid only for the recorded candidate SHA/tree against the recorded current `main` base. Governed material changes use merge-commit-only integration under `WORKFLOW.md`. After merge, CI verifies the integration commit, its parents, and exact tree equality with the candidate. If the base moved, identities differ, or evidence became stale, deployment is blocked until a new candidate and affected verification are complete. Release records separate Authorization to Merge and Authorization to Deploy decisions.
 
 ## User-Facing and Accessibility Gate
 

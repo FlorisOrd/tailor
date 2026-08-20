@@ -69,3 +69,14 @@ Use this file for decisions that materially shape architecture, delivery, securi
 - **Alternatives:** Empty tests or no automation; rejected.
 - **Consequences:** CI coverage intentionally expands after stack selection. Scheduled workflows and Dependabot operate from the default branch only after this configuration is merged.
 - **Evidence / follow-up:** `.github/workflows/governance.yml`, `.github/dependabot.yml`, and `scripts/validate_governance.py`.
+
+## D-006 — Merge-commit exact-tree integration protocol
+
+- **Date:** 2026-08-20
+- **Status:** Accepted
+- **Context:** Final review applies to a candidate SHA, while GitHub integration creates a different main SHA. Release needs deterministic proof that reviewed content is what reaches pre-production and production.
+- **Decision:** Synchronize the candidate to a recorded current `main` base, record candidate/base SHAs and candidate tree, verify that candidate, then require separate Release Authorization to Merge. Integrate with a two-parent merge commit only. Verify its base/candidate parents and exact tree equality, run integration CI and staging on the integrated revision, then require separate Authorization to Deploy.
+- **Rationale:** Git commit identity changes at merge, but exact tree and parent verification proves content and ancestry without reviewing merge metadata as product code.
+- **Alternatives:** Squash/rebase merging loses direct candidate identity; deploying from the candidate bypasses authoritative `main`; both are rejected for governed material work.
+- **Consequences:** A moved base, different tree, non-merge integration, or material candidate change blocks deployment and creates renewed verification work. Current GitHub Free controls report but do not hard-block violations.
+- **Evidence / follow-up:** `WORKFLOW.md`, `.github/PULL_REQUEST_TEMPLATE.md`, `scripts/verify_integration.py`, and `.github/GOVERNANCE_ENFORCEMENT.md`.

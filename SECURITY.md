@@ -15,7 +15,9 @@ Secret protection is non-waivable. Suspected exposure follows `INCIDENT_RESPONSE
 
 Dedicated Security Review is required for authentication, authorization, sessions, billing/payments, personal or regulated data, uploads, external APIs or webhooks, secrets or cryptography, databases or migrations, privilege boundaries, executable content, dependencies, infrastructure, public endpoints, and any changed trust boundary.
 
-For a triggered change, Security Review must be a different Codex thread/agent from Implementation, Lead/gate owner, QA, and Release. It records threat and data boundaries, plausible abuse cases, access-control behavior, input/output handling, secret handling, dependencies, logging/privacy impact, failure modes, and mitigations. Every security-relevant repair creates a new candidate and must be rechecked by Security Review.
+For a triggered change, Security Review must be a different Codex thread/agent from Implementation, Lead/gate authority, QA, and Release. It records threat and data boundaries, plausible abuse cases, access-control behavior, input/output handling, secret handling, dependencies, logging/privacy impact, failure modes, and mitigations. Every security-relevant repair creates a new candidate and must return to the independent Security reviewer for recheck. These independence and recheck requirements are non-waivable under the canonical list in `WORKFLOW.md`.
+
+Authentication, authorization, billing/payments, personal data, persisted-data migrations, infrastructure, deployment/security boundary changes, and other security-sensitive behavior require representative non-local isolated pre-production verification before production. The environment requirement is non-waivable; a local substitute never qualifies. Security Review approves security-relevant parity differences and compensating verification, but cannot waive the representative environment.
 
 ## Secrets and Supply Chain
 

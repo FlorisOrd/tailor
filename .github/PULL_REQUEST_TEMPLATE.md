@@ -1,6 +1,6 @@
 # Work Record
 
-> This GitHub pull request is the durable evidence record. Do not paste secrets, exploit details, or unnecessary personal data. Update the candidate SHA after the final material change; affected evidence then becomes stale until rerun or independently marked unaffected.
+> This GitHub pull request is the durable evidence record. Do not paste secrets, exploit details, or unnecessary personal data. Every repair or material change creates a new candidate; update its identity and rerun affected evidence or obtain an independent unaffected determination.
 
 ## Scope and Classification
 
@@ -18,7 +18,12 @@
 ## Candidate
 
 - Branch:
+- Recorded current `main` / base commit SHA:
 - Exact candidate commit SHA:
+- Candidate tree hash:
+- Base-is-ancestor result:
+- Candidate divergence/conflict result:
+- Final pre-authorization remote `main` SHA check:
 - Implementation agent/thread:
 - Summary of material changes after prior evidence, or `None`:
 
@@ -31,6 +36,10 @@
 | UX / Accessibility (or approved N/A) |  |  | Pending |
 | Security Review (or trigger assessment) |  |  | Pending |
 | Release |  |  | Pending |
+
+- [ ] Implementation, Independent Code Review, QA, and Release are four different threads/agents; no thread occupies more than one role.
+- [ ] If Security is triggered, Security Review is separate from Implementation, Lead/gate authority, QA, and Release.
+- [ ] Required role separations are treated as non-waivable; no exception combines these roles.
 
 ## Automated and Manual Evidence
 
@@ -73,14 +82,38 @@ For each N/A: record the reason and non-implementer concurrence. A blank cell is
 - Threat/data-boundary summary:
 - Secret and dependency scan disposition:
 - Security-relevant repairs and Security recheck:
+- [ ] Every security-relevant repair returned to the independent Security reviewer.
+
+## Authorization to Merge
+
+- [ ] Release confirms candidate evidence is complete, current, and tied to the recorded candidate/base/tree.
+- [ ] Remote `main` still equals the recorded base.
+- Release agent/thread:
+- Decision and date:
+- Candidate SHA/tree authorized for merge:
+- Recorded base SHA authorized for merge:
+
+## Integration Record
+
+- Integration/main commit SHA:
+- Integration tree hash:
+- Integration parent SHAs:
+- [ ] Integration parents equal the authorized base and candidate.
+- [ ] Integration tree hash exactly equals the authorized candidate tree hash.
+- Post-integration CI/check evidence:
+- Evidence invalidated, rerun, or independently determined unaffected:
 
 ## Staging and Smoke Verification
 
 - Environment and production-parity differences:
-- Exact deployed candidate/artifact identity:
+- Exact deployed integration revision/artifact identity:
 - Startup/health and critical-flow result:
 - Configuration/secrets, external boundaries, authorization, persistence/migration, errors/recovery, and observability results as applicable:
-- For high-risk changes, representative non-local staging evidence:
+- High-risk category or reason not triggered:
+- Representative non-local isolated pre-production evidence for high-risk work:
+- [ ] If high-risk, a purely local environment did not substitute and the representative environment requirement was not waived.
+- Security approval of security-relevant parity differences:
+- Release acceptance of parity differences and compensating verification:
 
 ## Release Readiness and Monitoring
 
@@ -90,12 +123,19 @@ For each N/A: record the reason and non-implementer concurrence. A blank cell is
 - Observation window:
 - Alert route / Operations owner:
 - Rollback triggers:
-- Post-release verification record:
 - Unresolved lower-severity debt:
 
-## Release Decision
+## Authorization to Deploy
 
-- [ ] Release confirms this record is complete and evidence applies to the exact candidate SHA.
+- [ ] Release confirms all pre-deployment portions of this record are complete, integration identity is verified, required CI and staging evidence applies to the integration revision, and no stale approval is relied upon.
 - Release agent/thread:
 - Decision and date:
-- Authorized candidate SHA:
+- Authorized integration/main SHA and artifact:
+
+## Post-Release Monitoring
+
+- Exact deployed integration SHA/artifact:
+- Observation start/end:
+- Health signals and threshold results:
+- Alerts, regressions, or rollback decision:
+- Recorded post-release verification and Operations disposition:

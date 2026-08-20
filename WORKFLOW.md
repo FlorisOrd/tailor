@@ -10,10 +10,12 @@
 - **QA:** independently tests acceptance criteria, failures, regressions, and applicable browser behavior.
 - **UX / Accessibility Review:** independently evaluates user-facing flows, content, responsiveness, keyboard use, focus, semantics, contrast, zoom, and motion.
 - **Security Review:** performs the dedicated review required by `SECURITY.md`.
-- **Release:** independently confirms the evidence record, authorizes the exact candidate, promotes it, and verifies rollback readiness.
+- **Release:** independently confirms the evidence record, issues separate Authorization to Merge and Authorization to Deploy decisions, and verifies integration, staging, and rollback readiness.
 - **Operations / Regression Monitoring:** observes release health, routes alerts, records verification, and initiates rollback or repair.
 
-For material work, Implementation, Independent Code Review, QA, and Release must each be different Codex threads/agents. A triggered Security Review must be separate from Implementation, Lead, QA, and Release. Other roles may combine only when their independence is not required by this governance.
+For the same material change, Implementation, Independent Code Review, QA, and Release must each be a different Codex thread/agent. No thread may occupy more than one of those four roles. Therefore every pair is separated: Implementation from Independent Code Review, QA, and Release; Independent Code Review from QA and Release; and QA from Release. These separations are non-waivable.
+
+For security-triggered work, Security Review must additionally be a different thread/agent from Implementation, Lead/gate authority, QA, and Release. Security-relevant repairs must return to the independent Security reviewer. These Security separations and recheck are non-waivable. Other roles may combine only when this governance does not require their independence.
 
 ## Material Work Classification
 
@@ -25,11 +27,41 @@ Work may be classified non-material only when it cannot affect behavior, risk, v
 
 Agents must not routinely commit or push directly to `main`; material work must never do so. Use a feature branch or isolated worktree. A GitHub pull request is the normal durable review record. If GitHub cannot host a PR, use a versioned equivalent record linked from GitHub and explain the limitation.
 
-Product request → acceptance criteria → isolated implementation → independent code review → repairs → automated testing → QA/browser verification where applicable → Security Review where applicable → staging verification → Release authorization → release → post-release monitoring.
+Product request → acceptance criteria → isolated implementation → candidate synchronized with `main` → final candidate verification → Authorization to Merge → deterministic integration → integration/tree verification and CI → representative staging verification → Authorization to Deploy → production release → post-release monitoring.
 
-The PR record must identify one exact candidate commit SHA. Independent review and checks apply to that SHA. Every repair or other material change creates a new candidate revision and invalidates affected approvals and evidence. Each affected review, automated test, QA/browser/accessibility check, Security Review, and staging result must be rerun; alternatively, an independent owner of that gate may record why it is unaffected. Release rejects missing, stale, or self-attested evidence.
+Independent Code Review, automated checks, QA/browser/accessibility checks, and Security Review where triggered verify one exact candidate commit SHA. Every repair or other material change creates a new candidate revision and invalidates affected approvals and evidence. Each affected gate must be rerun; alternatively, its independent owner may record why it is unaffected. Release rejects missing, stale, or self-attested evidence.
 
-Only Release may authorize a fully verified candidate for release. Approval is not permission to merge or deploy a different revision. `main` changes require a PR or equivalent durable review record before becoming authoritative.
+`main` changes require a PR or equivalent durable review record before becoming authoritative. The exact-candidate integration protocol below is procedural on the current GitHub plan; `.github/GOVERNANCE_ENFORCEMENT.md` records the lack of hard enforcement.
+
+## Exact-Candidate Integration Protocol
+
+### A. Candidate Creation
+
+Before final verification, update the candidate branch with the latest remote `main` without rewriting reviewed history. Record the base/main commit SHA, candidate commit SHA, and candidate tree hash. The recorded base must be an ancestor of the candidate, the candidate must have no unresolved conflicts or divergence from that base, and remote `main` must still equal the recorded base when final verification begins.
+
+Useful identity commands are `git rev-parse <ref>`, `git rev-parse <ref>^{tree}`, `git merge-base --is-ancestor <base> <candidate>`, and `git rev-list --left-right --count <base>...<candidate>`. Record results in the PR; do not ask the product owner to run them.
+
+### B. Final Candidate Verification
+
+Independent Code Review, QA, triggered Security Review, automated checks, and other applicable gates verify the recorded candidate SHA. Evidence names that SHA. After final verification begins, a repair or material change creates a new candidate and invalidates affected evidence under the stale-evidence rule. Immediately before merge authorization, Release fetches remote state and confirms `main` still equals the recorded base.
+
+### C. Authorization to Merge
+
+Release may issue **AUTHORIZATION TO MERGE** only when candidate evidence is complete and current. This authorizes integration of only the recorded candidate into only the recorded base. It is not authorization to deploy production.
+
+### D. Deterministic Integration
+
+Governed material changes use **MERGE COMMIT ONLY** with fast-forward, squash, and rebase merging prohibited. The integration commit must have the recorded base and candidate as its parents without additional content changes. If `main` moved after base synchronization, stop: update/integrate current `main` into the candidate, create and record a new candidate SHA/tree/base, and rerun affected gates before a new Authorization to Merge.
+
+After merge, record the integration/main commit SHA and tree hash. Verify its parent identities and verify that its tree hash exactly equals the approved candidate tree hash. A different tree, parents, or base condition blocks deployment and requires appropriate renewed verification; never rationalize the mismatch as merge-only metadata.
+
+### E. Authorization to Deploy
+
+After integration, run required CI on the integration commit and verify staging/pre-release evidence for the integrated revision. Release may issue **AUTHORIZATION TO DEPLOY** only after recording the integration SHA/tree, proving tree equality with the candidate, confirming base/parent conditions, confirming required evidence remains valid, and rejecting stale approvals. Production may deploy only the authorized integration revision/artifact.
+
+### F. Durable Release Record
+
+The PR record contains: base SHA; candidate SHA and tree hash; final-verification evidence; Authorization to Merge; integration/main SHA and tree hash; parent/base and tree-equality results; post-integration CI and staging evidence; evidence invalidation/reruns; and Authorization to Deploy.
 
 ## Shared Finding Severity
 
@@ -42,15 +74,25 @@ BLOCKING and MAJOR repairs must be independently rechecked by the role that rais
 
 ## Exceptions and Non-Waivable Gates
 
-The following cannot be waived: separation of Implementation and Independent Code Review; triggered Security Review and its independence; secret protection; disposition and independent recheck of BLOCKING/MAJOR findings; exact-candidate verification; Release authorization; and integrity of required evidence.
+The canonical non-waivable gates are:
 
-Any other temporary exception requires a written justification, risk and compensating controls, independent concurrence, relevant specialist concurrence, Release concurrence, expiry date, and durable PR record. The Lead alone cannot waive a gate. Owner approval is additionally required when an exception crosses the decision boundaries in `PRODUCT.md`.
+1. Implementation, Independent Code Review, QA, and Release are four different threads/agents for the same material change; no thread occupies two roles.
+2. Triggered Security Review is independent from Implementation, Lead/gate authority, QA, and Release, and Security rechecks security-relevant repairs.
+3. Secret protection.
+4. Repair and independent recheck of every BLOCKING and MAJOR finding.
+5. Exact candidate/base/tree identity, deterministic integration, integration tree/parent verification, stale-evidence handling, and required-evidence integrity.
+6. Separate Authorization to Merge and Authorization to Deploy decisions issued only by Release.
+7. Representative non-local isolated pre-production verification before a high-risk production release as defined below.
+
+No exception may waive these gates. Any other temporary exception requires a written justification, risk and compensating controls, independent concurrence, relevant specialist concurrence, Release concurrence, expiry date, and durable PR record. The Lead alone cannot waive a gate. Owner approval is additionally required when an exception crosses the decision boundaries in `PRODUCT.md`.
 
 ## Staging and Pre-Release Verification
 
-Staging or the pre-release environment must use the exact candidate artifact and materially match production runtime, configuration shape, integrations or faithful test doubles, data/schema version, access boundaries, observability, and deployment path. Differences and their risk must be recorded.
+Staging or the pre-release environment must verify the integrated revision/artifact authorized for possible production use and materially match production runtime, configuration shape, integrations or faithful test doubles, data/schema version, access boundaries, observability, and deployment path. Candidate-only evidence may inform testing but cannot replace required post-integration identity and staging checks.
 
-For authentication, authorization, billing/payments, personal data, migrations, infrastructure, or other security-sensitive behavior, a developer machine or simple local substitute does not count as staging. Release must block until a representative isolated environment verifies the relevant boundaries and recovery behavior.
+Before the first high-risk production release, the repository must establish a representative **non-local isolated pre-production environment**. This non-waivable capability applies to authentication, authorization, billing/payments, personal data, database/schema migrations affecting persisted data, infrastructure changes, deployment/security boundary changes, and other security-sensitive behavior. A developer machine or purely local substitute never satisfies it. No staging platform is required before a product or high-risk release exists, but Release cannot mark such a production release complete without this capability and evidence.
+
+Exact parity details may differ only when production parity is impossible. Record each difference, assess its risk, obtain independent Security approval when security-relevant, obtain Release acceptance, and add compensating verification where appropriate. These controlled parity differences do not waive the representative non-local environment itself.
 
 Minimum smoke checks are: deployed revision identity; startup and health; critical route or workflow; configuration and secret injection without disclosure; persistence/migration compatibility where applicable; external-boundary behavior; error and recovery path; authorization boundary where applicable; logging/metrics/alerts; and rollback or roll-forward execution evidence.
 

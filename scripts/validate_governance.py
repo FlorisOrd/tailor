@@ -22,14 +22,19 @@ REQUIRED_FILES = (
     ".github/GOVERNANCE_ENFORCEMENT.md",
     ".github/dependabot.yml",
     ".github/workflows/governance.yml",
+    "scripts/verify_integration.py",
 )
 
 REQUIRED_TEXT = {
     "AGENTS.md": (
         "GitHub is the permanent source of truth",
         "Do not commit or push material work directly to `main`",
-        "Only Release may authorize a verified candidate",
+        "Release alone issues separate",
         "Non-waivable gates",
+        "no thread may hold more than one of these roles",
+        "Authorization to Merge",
+        "Authorization to Deploy",
+        "representative non-local isolated pre-production verification",
     ),
     "PRODUCT.md": ("not yet defined", "Approved features: None"),
     "WORKFLOW.md": (
@@ -39,23 +44,46 @@ REQUIRED_TEXT = {
         "MINOR",
         "SUGGESTION",
         "Every repair or other material change creates a new candidate revision",
+        "MERGE COMMIT ONLY",
+        "No exception may waive these gates",
+        "Implementation, Independent Code Review, QA, and Release are four different threads/agents",
+        "Representative non-local isolated pre-production verification",
     ),
     "QUALITY.md": (
         "canonical commands",
         "automated accessibility",
         "dependency/software-composition",
         "A genuinely inapplicable gate requires a written N/A rationale",
+        "Implementation, Independent Code Review, QA, and Release are four different threads/agents",
+        "Authorization to Merge",
+        "Authorization to Deploy",
+        "representative non-local isolated pre-production verification",
     ),
     "SECURITY.md": (
-        "different Codex thread/agent from Implementation, Lead/gate owner, QA, and Release",
+        "different Codex thread/agent from Implementation, Lead/gate authority, QA, and Release",
         "lockfiles",
         "scheduled rescanning",
+        "must return to the independent Security reviewer for recheck",
+        "environment requirement is non-waivable",
     ),
     "INCIDENT_RESPONSE.md": ("Containment", "Recovery", "Postmortem"),
     ".github/GOVERNANCE_ENFORCEMENT.md": (
         "does **not** claim",
         "Not Currently Hard-Enforced",
         "Future Technical Enforcement",
+    ),
+    ".github/PULL_REQUEST_TEMPLATE.md": (
+        "Recorded current `main` / base commit SHA",
+        "Candidate tree hash",
+        "no thread occupies more than one role",
+        "Required role separations are treated as non-waivable",
+        "Every security-relevant repair returned to the independent Security reviewer",
+        "Authorization to Merge",
+        "Integration/main commit SHA",
+        "Integration tree hash exactly equals the authorized candidate tree hash",
+        "Representative non-local isolated pre-production evidence",
+        "representative environment requirement was not waived",
+        "Authorization to Deploy",
     ),
 }
 
@@ -134,6 +162,11 @@ def main() -> int:
     for trigger in ("push:", "pull_request:", "workflow_dispatch:", "schedule:"):
         if trigger not in workflow:
             problems.append(f"governance workflow missing trigger: {trigger}")
+    for protocol_job in ("candidate-identity:", "integration-identity:"):
+        if protocol_job not in workflow:
+            problems.append(f"governance workflow missing protocol job: {protocol_job}")
+    if "scripts/verify_integration.py" not in workflow:
+        problems.append("governance workflow does not run integration identity validation")
 
     validate_dependency_readiness(problems)
 

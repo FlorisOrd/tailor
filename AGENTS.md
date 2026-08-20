@@ -8,13 +8,15 @@ GitHub is the permanent source of truth. Never commit secrets or populated envir
 
 ## Change Control
 
-Treat work as material by default; `WORKFLOW.md` defines the minimum scope. Material changes must use an isolated branch/worktree and a GitHub pull request or equivalent durable review record. Do not commit or push material work directly to `main`. The exact final candidate revision must be the revision reviewed and verified. Every repair or other material change creates a new candidate and invalidates affected approvals and evidence until an independent role reruns them or records why they are unaffected. Only Release may authorize a verified candidate for release.
+Treat work as material by default; `WORKFLOW.md` defines the minimum scope. Material changes must use an isolated branch/worktree and a GitHub pull request or equivalent durable review record. Do not commit or push material work directly to `main`.
+
+Before final verification, update the candidate with current `main` and record the base SHA, candidate SHA, and candidate tree hash. Review and tests apply to that candidate. Every repair or other material change creates a new candidate and invalidates affected approvals and evidence. Release alone issues separate **Authorization to Merge** and **Authorization to Deploy** decisions. Governed material work uses a merge commit; after integration, verify the main commit tree equals the candidate tree and that the recorded base remained current. A mismatch or moved base blocks deployment and requires renewed verification under `WORKFLOW.md`.
 
 ## Separation and Gates
 
-For material work, Implementation, Independent Code Review, QA, and Release must each be different Codex threads/agents. Triggered Security Review must also be separate from those roles and the Lead. No agent may be the sole reviewer of its own work.
+For the same material change, Implementation, Independent Code Review, QA, and Release must each be a different Codex thread/agent; no thread may hold more than one of these roles. Triggered Security Review must additionally be separate from Implementation, Lead/gate authority, QA, and Release, and Security must recheck security-relevant repairs. These separations are non-waivable.
 
-Follow `PRODUCT.md`, `ARCHITECTURE.md`, `WORKFLOW.md`, `QUALITY.md`, `SECURITY.md`, and `INCIDENT_RESPONSE.md`. Objective evidence takes priority over claims. Non-waivable gates include role separation, triggered Security Review, secret protection, disposition and recheck of BLOCKING/MAJOR findings, exact-revision verification, Release authorization, and evidence integrity.
+Follow `PRODUCT.md`, `ARCHITECTURE.md`, `WORKFLOW.md`, `QUALITY.md`, `SECURITY.md`, and `INCIDENT_RESPONSE.md`. Objective evidence takes priority over claims. The canonical non-waivable gates are: the role separations above; triggered Security Review and Security recheck; secret protection; repair and independent recheck of BLOCKING/MAJOR findings; exact candidate/base/tree and integration verification; both Release authorizations; required-evidence integrity; and representative non-local isolated pre-production verification before any high-risk production release defined in `WORKFLOW.md`. No exception may waive them.
 
 User-facing visual or flow changes require browser, UX/accessibility, keyboard, zoom/responsiveness, and appropriate automated accessibility checks. Sensitive areas listed in `SECURITY.md` require dedicated Security Review. Work is incomplete while a required gate fails or evidence is stale.
 
