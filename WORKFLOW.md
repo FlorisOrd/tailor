@@ -35,7 +35,7 @@ Independent Code Review, automated checks, QA/browser/accessibility checks, and 
 
 ### Durable Gate Records
 
-Every formal gate agent stores its exact JSON Gate Record in an immutable candidate-parent commit under the deterministic ref defined in `.github/governance/GATE_RECORDS.md`, then publishes a PR comment containing that object SHA and identical fenced JSON. Corrections are reciprocal successor records, never edits. The validator checks recursive schema, object/ref/content equality, the supersession graph, unresolved serious findings, freshness, and distinct roles. The PR body is only a summary.
+Every formal gate agent stores its exact JSON Gate Record in an immutable candidate-parent commit under the deterministic ref defined in `.github/governance/GATE_RECORDS.md`, then publishes a PR comment containing that object SHA and identical fenced JSON. Later records point backward; predecessors never change. Repair claims and independent rechecks are separate append-only edges. Release queries live PR comments and the complete remote namespace, then validates recursive schema, content equality, graph continuity, finding lifecycle, freshness, and recorded-agent separation. The PR body is only a summary.
 
 `main` changes require a PR or equivalent durable review record before becoming authoritative. The exact-candidate integration protocol below is procedural on the current GitHub plan; `.github/GOVERNANCE_ENFORCEMENT.md` records the lack of hard enforcement.
 
@@ -59,7 +59,7 @@ Release may issue **AUTHORIZATION TO MERGE** only when agent-published Gate Reco
 
 Governed material changes use **MERGE COMMIT ONLY** with fast-forward, squash, and rebase merging prohibited. The integration message contains exactly one `Governance-PR: <pr>` and one `Governance-Authorization: <sha>` trailer. The verifier derives the only valid authorization ref from the record's PR and candidate, requires exact ref equality, validates the authorized Gate Record objects, and checks exact parents and trees. Namespace membership and ancestry never substitute for equality.
 
-GitHub Free cannot technically prove which Codex thread pushed an authorization ref or prevent a writer from imitating the Release procedure. Agent-published Gate Records, Git object/ref history, distinct identities, and Release verification are the strongest practical auditable controls here; they remain procedural.
+GitHub Free cannot prove which Codex process authored a comment/commit, map textual `agent_id` to a physically distinct process, enforce separate credentials, or prove a privileged writer never deleted/repointed evidence before observation. It can verify observed commits, trees, objects, refs, graph relationships, and current GitHub/remote consistency. These identity and pre-observation deletion limits remain explicit.
 
 After merge, record the integration/main commit SHA and tree hash. Verify its parent identities and verify that its tree hash exactly equals the approved candidate tree hash. A different tree, parents, or base condition blocks deployment and requires appropriate renewed verification; never rationalize the mismatch as merge-only metadata.
 

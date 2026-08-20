@@ -34,12 +34,16 @@
     "publisher_must_be_performing_agent": true,
     "pr_body_is_authoritative": false,
     "candidate_identity_fields": ["base_sha", "candidate_sha", "candidate_tree"],
-    "required_gate_record_fields": ["schema_version", "gate_record_id", "gate_type", "agent_role", "agent_id", "pr_number", "base_sha", "candidate_sha", "candidate_tree", "timestamp", "scope", "checks", "findings", "disposition", "repository_state_changed", "supersedes", "superseded_by"],
-    "required_finding_fields": ["finding_id", "severity", "summary", "status", "rechecked_by_gate_record_id"],
+    "required_gate_record_fields": ["schema_version", "gate_record_id", "gate_type", "agent_role", "agent_id", "pr_number", "base_sha", "candidate_sha", "candidate_tree", "timestamp", "scope", "checks", "findings", "repair_claims", "rechecks", "disposition", "repository_state_changed", "supersedes"],
+    "required_finding_fields": ["finding_id", "severity", "summary", "status"],
+    "required_repair_claim_fields": ["source_gate_record_id", "source_finding_id", "repaired_candidate_sha", "summary"],
+    "required_recheck_fields": ["source_gate_record_id", "source_finding_id", "repair_gate_record_id", "rechecked_candidate_sha", "outcome"],
     "finding_severities": ["BLOCKING", "MAJOR", "MINOR", "SUGGESTION"],
-    "finding_statuses": ["OPEN", "CLOSED"],
-    "supersession": {"reciprocal": true, "acyclic": true, "same_gate_type": true, "same_pr": true, "ordered_timestamp": true, "open_serious_findings_survive": true},
-    "content_addressing": {"required": true, "storage": "immutable_git_commit", "canonical_ref_prefix": "refs/governance/gate-records/", "comment_must_match_stored_json": true, "commit_parent_is_candidate": true}
+    "finding_statuses": ["OPEN"],
+    "append_only_graph": {"backward_edges_only": true, "predecessor_never_mutated": true, "acyclic": true, "no_forks": true, "same_gate_type_for_supersession": true, "same_pr": true, "ordered_timestamp": true, "missing_predecessor_fails": true},
+    "finding_lifecycle": {"repair_claim_does_not_close": true, "closure_requires_distinct_rechecker": true, "closure_requires_exact_source_finding": true, "closure_requires_repaired_candidate": true, "failed_recheck_remains_open": true, "wrong_role_cannot_recheck": true},
+    "content_addressing": {"required": true, "storage": "immutable_git_commit", "canonical_ref_prefix": "refs/governance/gate-records/", "comment_must_match_stored_json": true, "commit_parent_is_candidate": true},
+    "live_reconciliation": {"github_pr_comments_required": true, "complete_remote_ref_discovery": true, "origin_queried_at_validation_time": true, "local_ref_subset_not_authoritative": true, "source_disagreement_fails": true, "missing_history_fails": true}
   },
   "stale_evidence": {
     "candidate_change_invalidates": true,

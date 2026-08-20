@@ -1,172 +1,187 @@
-"""Fail-closed validation for agent-published, content-addressed Gate Records."""
+"""Validate immutable Gate Records, append-only edges, and finding lifecycles."""
 from __future__ import annotations
-import argparse, json, re, subprocess, sys
+import argparse,json,re,subprocess,sys
 from datetime import datetime
 from pathlib import Path
 
 SHA=re.compile(r"^[0-9a-f]{40}$"); ID=re.compile(r"^GATE-[A-Z0-9][A-Z0-9-]{2,63}$")
-GATES={"Independent Code Review","QA","Security Review","Release"}; SEVERITIES={"BLOCKING","MAJOR","MINOR","SUGGESTION"}; STATUSES={"OPEN","CLOSED"}
-RECORD_FIELDS={"schema_version","gate_record_id","gate_type","agent_role","agent_id","pr_number","base_sha","candidate_sha","candidate_tree","timestamp","scope","checks","findings","disposition","repository_state_changed","supersedes","superseded_by"}
-FINDING_FIELDS={"finding_id","severity","summary","status","rechecked_by_gate_record_id"}; RECORD_PATH=".github/governance/gate-record.json"
+FORMAL_GATES={"Independent Code Review","QA","Security Review","Release"}; GATES=FORMAL_GATES|{"Implementation Repair"}
+SEVERITIES={"BLOCKING","MAJOR","MINOR","SUGGESTION"}; RECORD_PATH=".github/governance/gate-record.json"
+RECORD_FIELDS={"schema_version","gate_record_id","gate_type","agent_role","agent_id","pr_number","base_sha","candidate_sha","candidate_tree","timestamp","scope","checks","findings","repair_claims","rechecks","disposition","repository_state_changed","supersedes"}
+FINDING_FIELDS={"finding_id","severity","summary","status"}; REPAIR_FIELDS={"source_gate_record_id","source_finding_id","repaired_candidate_sha","summary"}; RECHECK_FIELDS={"source_gate_record_id","source_finding_id","repair_gate_record_id","rechecked_candidate_sha","outcome"}
+LEGACY_FIELDS={"schema_version","gate_record_id","gate_type","agent_role","agent_id","pr_number","base_sha","candidate_sha","candidate_tree","timestamp","scope","checks","findings","disposition","repository_state_changed","supersedes","superseded_by"}
 
-def timestamp(value: object) -> datetime | None:
+def parse_time(value):
     try:
-        parsed=datetime.fromisoformat(str(value).replace("Z","+00:00")); return parsed if parsed.tzinfo else None
-    except ValueError: return None
+        result=datetime.fromisoformat(str(value).replace("Z","+00:00")); return result if result.tzinfo else None
+    except ValueError:return None
+def nonempty(value):return isinstance(value,str) and bool(value.strip())
+def valid_sha(value):return isinstance(value,str) and SHA.fullmatch(value) is not None
 
-def validate_finding(finding: object) -> list[str]:
-    if not isinstance(finding,dict): return ["finding must be an object"]
+def validate_finding(f):
+    if not isinstance(f,dict):return ["finding must be an object"]
     p=[]
-    if set(finding)!=FINDING_FIELDS: p.append("finding fields must exactly match schema")
-    if not isinstance(finding.get("finding_id"),str) or not finding["finding_id"].strip(): p.append("finding_id must be non-empty")
-    if finding.get("severity") not in SEVERITIES: p.append("invalid finding severity")
-    if not isinstance(finding.get("summary"),str) or not finding["summary"].strip(): p.append("finding summary must be non-empty")
-    if finding.get("status") not in STATUSES: p.append("invalid finding status")
-    recheck=finding.get("rechecked_by_gate_record_id")
-    if recheck is not None and (not isinstance(recheck,str) or not ID.fullmatch(recheck)): p.append("invalid finding recheck record ID")
-    if finding.get("status")=="OPEN" and recheck is not None: p.append("open finding cannot claim a recheck")
-    if finding.get("status")=="CLOSED" and recheck is None: p.append("closed finding requires a recheck record ID")
+    if set(f)!=FINDING_FIELDS:p.append("finding fields must exactly match schema")
+    if not nonempty(f.get("finding_id")):p.append("finding_id must be non-empty")
+    if f.get("severity") not in SEVERITIES:p.append("invalid finding severity")
+    if not nonempty(f.get("summary")):p.append("finding summary must be non-empty")
+    if f.get("status")!="OPEN":p.append("published findings are append-only OPEN facts; closure belongs in a recheck edge")
+    return p
+def validate_repair(c):
+    if not isinstance(c,dict):return ["repair claim must be an object"]
+    p=[]
+    if set(c)!=REPAIR_FIELDS:p.append("repair claim fields must exactly match schema")
+    for f in ("source_gate_record_id","source_finding_id","summary"):
+        if not nonempty(c.get(f)):p.append(f"repair claim {f} must be non-empty")
+    if not valid_sha(c.get("repaired_candidate_sha")):p.append("repair claim candidate must be a full SHA")
+    return p
+def validate_recheck(c):
+    if not isinstance(c,dict):return ["recheck must be an object"]
+    p=[]
+    if set(c)!=RECHECK_FIELDS:p.append("recheck fields must exactly match schema")
+    for f in ("source_gate_record_id","source_finding_id","repair_gate_record_id"):
+        if not nonempty(c.get(f)):p.append(f"recheck {f} must be non-empty")
+    if not valid_sha(c.get("rechecked_candidate_sha")):p.append("recheck candidate must be a full SHA")
+    if c.get("outcome") not in {"PASS","FAIL"}:p.append("recheck outcome must be PASS or FAIL")
     return p
 
-def validate_record(record: object) -> list[str]:
-    if not isinstance(record,dict): return ["record must be an object"]
+def validate_record(r):
+    if not isinstance(r,dict):return ["record must be an object"]
+    if r.get("schema_version")==1:return validate_legacy_record(r)
     p=[]
-    if set(record)!=RECORD_FIELDS: p.append("record fields must exactly match schema")
-    if record.get("schema_version")!=1: p.append("schema_version must be 1")
-    if not isinstance(record.get("gate_record_id"),str) or not ID.fullmatch(record["gate_record_id"]): p.append("invalid gate_record_id")
-    if record.get("gate_type") not in GATES: p.append("invalid gate_type")
-    if record.get("agent_role")!=record.get("gate_type"): p.append("agent_role must equal gate_type")
-    for field in ("agent_id","scope"):
-        if not isinstance(record.get(field),str) or not record[field].strip(): p.append(f"{field} must be non-empty")
-    if not isinstance(record.get("pr_number"),int) or record["pr_number"]<1: p.append("pr_number must be positive")
-    for field in ("base_sha","candidate_sha","candidate_tree"):
-        if not isinstance(record.get(field),str) or not SHA.fullmatch(record[field]): p.append(f"{field} must be a lowercase full SHA")
-    if timestamp(record.get("timestamp")) is None: p.append("timestamp must be timezone-aware ISO-8601")
-    if not isinstance(record.get("checks"),list) or not record["checks"] or not all(isinstance(x,str) and x.strip() for x in record["checks"]): p.append("checks must be a non-empty string array")
-    if record.get("disposition") not in {"PASS","FAIL","PENDING","N/A"}: p.append("invalid disposition")
-    if not isinstance(record.get("repository_state_changed"),bool): p.append("repository_state_changed must be boolean")
-    for field in ("supersedes","superseded_by"):
-        value=record.get(field)
-        if value is not None and (not isinstance(value,str) or not ID.fullmatch(value)): p.append(f"invalid {field}")
-    if not isinstance(record.get("findings"),list): p.append("findings must be an array")
-    else:
-        ids=[]
-        for i,finding in enumerate(record["findings"]):
-            p.extend(f"finding[{i}]: {x}" for x in validate_finding(finding))
-            if isinstance(finding,dict): ids.append(finding.get("finding_id"))
-        if len(ids)!=len(set(ids)): p.append("finding_id values must be unique within a record")
+    if set(r)!=RECORD_FIELDS:p.append("record fields must exactly match schema")
+    if r.get("schema_version")!=2:p.append("schema_version must be 2")
+    if not isinstance(r.get("gate_record_id"),str) or not ID.fullmatch(r["gate_record_id"]):p.append("invalid gate_record_id")
+    if r.get("gate_type") not in GATES or r.get("agent_role")!=r.get("gate_type"):p.append("invalid or mismatched gate role")
+    if not nonempty(r.get("agent_id")) or not nonempty(r.get("scope")):p.append("agent_id and scope must be non-empty")
+    if not isinstance(r.get("pr_number"),int) or r["pr_number"]<1:p.append("pr_number must be positive")
+    for f in ("base_sha","candidate_sha","candidate_tree"):
+        if not valid_sha(r.get(f)):p.append(f"{f} must be a full SHA")
+    if parse_time(r.get("timestamp")) is None:p.append("timestamp must be timezone-aware ISO-8601")
+    if not isinstance(r.get("checks"),list) or not r["checks"] or not all(nonempty(x) for x in r["checks"]):p.append("checks must be a non-empty string array")
+    if r.get("disposition") not in {"PASS","FAIL","PENDING","N/A"}:p.append("invalid disposition")
+    if not isinstance(r.get("repository_state_changed"),bool):p.append("repository_state_changed must be boolean")
+    for field,validator in (("findings",validate_finding),("repair_claims",validate_repair),("rechecks",validate_recheck)):
+        if not isinstance(r.get(field),list):p.append(f"{field} must be an array")
+        else:
+            for i,item in enumerate(r[field]):p.extend(f"{field}[{i}]: {x}" for x in validator(item))
+    if isinstance(r.get("findings"),list):
+        ids=[f.get("finding_id") for f in r["findings"] if isinstance(f,dict)]
+        if len(ids)!=len(set(ids)):p.append("finding IDs must be unique per record")
+    if not isinstance(r.get("supersedes"),list) or len(r["supersedes"])!=len(set(r["supersedes"])) or not all(isinstance(x,str) and ID.fullmatch(x) for x in r.get("supersedes",[])):p.append("supersedes must be a unique Gate Record ID array")
+    if r.get("gate_type")=="Implementation Repair" and (not r.get("repository_state_changed") or not r.get("repair_claims")):p.append("Implementation Repair must record a repository change and repair claim")
+    if r.get("gate_type")!="Implementation Repair" and r.get("repair_claims"):p.append("only Implementation Repair may publish repair claims")
+    if r.get("repository_state_changed") and r.get("gate_type")!="Implementation Repair":p.append("formal review/QA/Security/Release records must not change repository state")
+    return p
+def validate_legacy_record(r):
+    p=[]
+    if set(r)!=LEGACY_FIELDS:p.append("legacy record fields are malformed")
+    if r.get("gate_type") not in FORMAL_GATES or r.get("agent_role")!=r.get("gate_type"):p.append("invalid legacy gate role")
+    if not isinstance(r.get("gate_record_id"),str) or not ID.fullmatch(r["gate_record_id"]):p.append("invalid legacy record ID")
+    for f in ("base_sha","candidate_sha","candidate_tree"):
+        if not valid_sha(r.get(f)):p.append(f"invalid legacy {f}")
+    if parse_time(r.get("timestamp")) is None:p.append("invalid legacy timestamp")
+    if not isinstance(r.get("findings"),list):p.append("legacy findings must be an array")
     return p
 
-def validate_graph(records: list[dict[str,object]]) -> list[str]:
+def finding_key(record,finding):return (record["gate_record_id"],finding["finding_id"])
+def validate_graph(records,base,candidate,candidate_tree,pr,required):
     p=[]; by_id={}
-    for record in records:
-        rid=record.get("gate_record_id")
-        if rid in by_id:
-            if record!=by_id[rid]: p.append(f"duplicate Gate Record ID has different content: {rid}")
-            else: p.append(f"duplicate Gate Record ID: {rid}")
-        else: by_id[rid]=record
-    for record in records:
-        rid=record["gate_record_id"]
-        successor_id=record["superseded_by"]
-        predecessor_id=record["supersedes"]
-        if successor_id:
-            successor=by_id.get(successor_id)
-            if successor is None: p.append(f"missing successor for {rid}: {successor_id}")
-            else:
-                if successor["supersedes"]!=rid: p.append(f"non-reciprocal supersession: {rid} -> {successor_id}")
-                if successor["gate_type"]!=record["gate_type"]: p.append(f"supersession changes gate type: {rid}")
-                if successor["pr_number"]!=record["pr_number"]: p.append(f"supersession changes PR: {rid}")
-                if successor["candidate_sha"]==record["candidate_sha"]: p.append(f"supersession must transition candidate: {rid}")
-                if timestamp(successor["timestamp"])<=timestamp(record["timestamp"]): p.append(f"supersession timestamp is not ordered: {rid}")
-        if predecessor_id:
-            predecessor=by_id.get(predecessor_id)
-            if predecessor is None: p.append(f"missing predecessor for {rid}: {predecessor_id}")
-            elif predecessor["superseded_by"]!=rid: p.append(f"non-reciprocal predecessor: {predecessor_id} -> {rid}")
-        seen=set(); cursor=record
-        while cursor.get("superseded_by"):
-            if cursor["gate_record_id"] in seen: p.append(f"supersession cycle at {rid}"); break
-            seen.add(cursor["gate_record_id"]); cursor=by_id.get(cursor["superseded_by"])
-            if cursor is None: break
-    for record in records:
-        for finding in record["findings"]:
-            if finding["severity"] not in {"BLOCKING","MAJOR"} or finding["status"]!="OPEN": continue
-            cursor=record; closed=False; seen=set()
-            while cursor.get("superseded_by") and cursor["gate_record_id"] not in seen:
-                seen.add(cursor["gate_record_id"]); cursor=by_id.get(cursor["superseded_by"])
-                if cursor is None: break
-                for later in cursor["findings"]:
-                    if later["finding_id"]==finding["finding_id"] and later["severity"]==finding["severity"] and later["status"]=="CLOSED" and later["rechecked_by_gate_record_id"]==cursor["gate_record_id"]: closed=True
-            if not closed: p.append(f"OPEN {finding['severity']} remains unrepaired/unrechecked: {finding['finding_id']}")
-    return p
-
-def git(*args:str)->str:
-    result=subprocess.run(("git",*args),capture_output=True,text=True,check=False)
-    if result.returncode: raise ValueError(result.stderr.strip() or result.stdout.strip())
-    return result.stdout.strip()
-
-def gate_refs(record:dict[str,object])->tuple[str,str]:
-    suffix=f"pr-{record['pr_number']}/{record['candidate_sha']}/{record['gate_record_id']}"
-    return f"refs/governance/gate-records/{suffix}",f"refs/remotes/origin/governance-gate-records/{suffix}"
-
-def discover_record_objects(pr:int)->tuple[list[dict[str,object]],dict[str,str]]:
-    prefixes=(f"refs/governance/gate-records/pr-{pr}/",f"refs/remotes/origin/governance-gate-records/pr-{pr}/")
-    output=git("for-each-ref","--format=%(refname) %(objectname)",*prefixes); records=[]; commits={}; seen=set()
-    for line in output.splitlines():
-        if not line.strip(): continue
-        _,commit=line.split()
-        if commit in seen: continue
-        seen.add(commit)
-        try: record=json.loads(git("show",f"{commit}:{RECORD_PATH}"))
-        except json.JSONDecodeError as error: raise ValueError(f"Gate Record ref contains invalid JSON: {commit}") from error
-        rid=record.get("gate_record_id")
-        if not isinstance(rid,str): raise ValueError(f"Gate Record ref has no valid ID: {commit}")
-        records.append(record); commits[rid]=commit
-    return records,commits
-
-def validate_record_object(record:dict[str,object],commit:str)->list[str]:
-    p=[]
-    if not SHA.fullmatch(commit): return ["Gate Record commit must be a full lowercase SHA"]
-    try:
-        if git("cat-file","-t",commit)!="commit": return ["Gate Record object must be a commit"]
-        if git("show","-s","--format=%P",commit).split()!=[record["candidate_sha"]]: p.append("Gate Record commit sole parent must equal candidate")
-        stored=json.loads(git("show",f"{commit}:{RECORD_PATH}"))
-        if stored!=record: p.append("PR/comment Gate Record content does not match stored content-addressed record")
-        found=[]
-        for ref in gate_refs(record):
-            result=subprocess.run(("git","show-ref","--verify","--hash",ref),capture_output=True,text=True,check=False)
-            if result.returncode==0: found.append((ref,result.stdout.strip()))
-        if not found: p.append("exact canonical Gate Record ref is missing")
-        elif any(value!=commit for _,value in found): p.append("canonical Gate Record ref points to the wrong object")
-    except (ValueError,json.JSONDecodeError) as error: p.append(f"invalid Gate Record object: {error}")
-    return p
-
-def validate_set(records:list[dict[str,object]],base:str,candidate:str,candidate_tree:str,pr:int,required:set[str],commits:dict[str,str]|None=None)->list[str]:
-    p=[]
-    for record in records: p.extend(f"{record.get('gate_record_id')}: {x}" for x in validate_record(record))
-    if p: return p
-    p.extend(validate_graph(records)); active=[r for r in records if r["superseded_by"] is None]
+    for r in records:
+        rid=r["gate_record_id"]
+        if rid in by_id:p.append(f"duplicate Gate Record ID: {rid}"+(" with different content" if by_id[rid]!=r else ""))
+        else:by_id[rid]=r
+    incoming={rid:[] for rid in by_id}
+    for r in records:
+        if r.get("schema_version")!=2:continue
+        for prior_id in r["supersedes"]:
+            prior=by_id.get(prior_id)
+            if prior is None:p.append(f"missing predecessor: {prior_id}");continue
+            incoming[prior_id].append(r["gate_record_id"])
+            if prior_id==r["gate_record_id"]:p.append(f"self-reference: {prior_id}")
+            if prior["pr_number"]!=r["pr_number"]:p.append(f"supersession changes PR: {prior_id}")
+            if prior["gate_type"]!=r["gate_type"]:p.append(f"supersession changes gate type: {prior_id}")
+            if parse_time(r["timestamp"])<=parse_time(prior["timestamp"]):p.append(f"supersession timestamp not ordered: {prior_id}")
+    for rid,successors in incoming.items():
+        if len(successors)>1:p.append(f"evidence fork at {rid}")
+    def visit(rid,path):
+        if rid in path:p.append(f"evidence cycle at {rid}");return
+        r=by_id[rid]
+        if r.get("schema_version")==2:
+            for prior in r["supersedes"]:
+                if prior in by_id:visit(prior,path|{rid})
+    for rid in by_id:visit(rid,set())
+    repairs={}; successful=set()
+    for r in records:
+        if r.get("schema_version")!=2:continue
+        for claim in r["repair_claims"]:
+            source=by_id.get(claim["source_gate_record_id"]); key=(claim["source_gate_record_id"],claim["source_finding_id"])
+            if source is None or not any(f.get("finding_id")==key[1] for f in source.get("findings",[])):p.append(f"repair references nonexistent finding: {key}")
+            if claim["repaired_candidate_sha"]!=r["candidate_sha"]:p.append(f"repair candidate mismatch: {key}")
+            repairs[(r["gate_record_id"],*key)]=(r,claim)
+    for r in records:
+        if r.get("schema_version")!=2:continue
+        for recheck in r["rechecks"]:
+            valid=True
+            source=by_id.get(recheck["source_gate_record_id"]); repair=by_id.get(recheck["repair_gate_record_id"]); key=(recheck["source_gate_record_id"],recheck["source_finding_id"])
+            if source is None or not any(f.get("finding_id")==key[1] for f in source.get("findings",[])):p.append(f"recheck references nonexistent finding: {key}");continue
+            claim_pair=repairs.get((recheck["repair_gate_record_id"],*key))
+            if repair is None or claim_pair is None:p.append(f"recheck lacks exact repair claim: {key}");continue
+            if r["gate_record_id"] in {source["gate_record_id"],repair["gate_record_id"]}:p.append(f"same record used as defect/repair/recheck: {key}");valid=False
+            if r["agent_id"] in {source["agent_id"],repair["agent_id"]}:p.append(f"rechecker is not a distinct recorded agent: {key}");valid=False
+            if r["gate_type"]!=source["gate_type"] or r["gate_type"] not in FORMAL_GATES-{"Release"}:p.append(f"wrong gate type performs recheck: {key}");valid=False
+            if recheck["rechecked_candidate_sha"]!=repair["candidate_sha"] or r["candidate_sha"]!=repair["candidate_sha"]:p.append(f"stale-candidate recheck: {key}");valid=False
+            if parse_time(r["timestamp"])<=parse_time(repair["timestamp"]):p.append(f"recheck predates repair: {key}");valid=False
+            if recheck["outcome"]=="PASS" and valid:successful.add(key)
+    for r in records:
+        for f in r.get("findings",[]):
+            if f.get("severity") in {"BLOCKING","MAJOR"} and finding_key(r,f) not in successful:p.append(f"OPEN {f['severity']} remains blocking: {r['gate_record_id']}/{f['finding_id']}")
+    referenced={x for r in records if r.get("schema_version")==2 for x in r["supersedes"]}; active=[r for r in records if r["gate_record_id"] not in referenced]
     for gate in required:
         matches=[r for r in active if r["gate_type"]==gate]
-        if len(matches)!=1: p.append(f"gate must have exactly one active record: {gate}"); continue
-        record=matches[0]
-        if record["disposition"]!="PASS": p.append(f"active Gate Record is not PASS: {gate}")
-        if (record["base_sha"],record["candidate_sha"],record["candidate_tree"],record["pr_number"])!=(base,candidate,candidate_tree,pr): p.append(f"stale or mismatched Gate Record: {gate}")
+        if len(matches)!=1:p.append(f"gate must have exactly one active record: {gate}");continue
+        r=matches[0]
+        if r["disposition"]!="PASS":p.append(f"active Gate Record is not PASS: {gate}")
+        if (r["base_sha"],r["candidate_sha"],r["candidate_tree"],r["pr_number"])!=(base,candidate,candidate_tree,pr):p.append(f"stale active Gate Record: {gate}")
     agents=[r["agent_id"] for r in active if r["gate_type"] in required]
-    if len(agents)!=len(set(agents)): p.append("required gates must use distinct agent identities")
-    if commits is not None:
-        for record in records:
-            commit=commits.get(record["gate_record_id"])
-            if commit is None: p.append(f"missing content-addressed Gate Record commit: {record['gate_record_id']}")
-            else: p.extend(f"{record['gate_record_id']}: {x}" for x in validate_record_object(record,commit))
-        if set(commits)!=set(r["gate_record_id"] for r in records): p.append("Gate Record commit map contains unknown IDs")
+    if len(agents)!=len(set(agents)):p.append("required active gates must have distinct recorded agent IDs")
     return p
 
-def main()->int:
-    parser=argparse.ArgumentParser(); parser.add_argument("record_files",nargs="+"); parser.add_argument("--record-commit",action="append",default=[],metavar="ID=SHA")
-    parser.add_argument("--base",required=True); parser.add_argument("--candidate",required=True); parser.add_argument("--tree",required=True); parser.add_argument("--pr",required=True,type=int); parser.add_argument("--require",nargs="+",choices=sorted(GATES),required=True); args=parser.parse_args()
-    records=[json.loads(Path(path).read_text(encoding="utf-8")) for path in args.record_files]; commits=dict(item.split("=",1) for item in args.record_commit)
-    p=validate_set(records,args.base,args.candidate,args.tree,args.pr,set(args.require),commits or None)
-    if p: print("Gate Record validation failed:"); [print(f"- {x}") for x in p]; return 1
-    print("Gate Record validation passed."); return 0
+def git(*args):
+    result=subprocess.run(("git",*args),capture_output=True,text=True,check=False)
+    if result.returncode:raise ValueError(result.stderr.strip() or result.stdout.strip())
+    return result.stdout.strip()
+def gate_refs(r):
+    suffix=f"pr-{r['pr_number']}/{r['candidate_sha']}/{r['gate_record_id']}";return f"refs/governance/gate-records/{suffix}",f"refs/remotes/origin/governance-gate-records/{suffix}"
+def validate_record_object(r,commit):
+    p=[]
+    try:
+        if not valid_sha(commit) or git("cat-file","-t",commit)!="commit":return ["Gate Record object must be a commit SHA"]
+        if git("show","-s","--format=%P",commit).split()!=[r["candidate_sha"]]:p.append("Gate Record commit sole parent must equal candidate")
+        if json.loads(git("show",f"{commit}:{RECORD_PATH}"))!=r:p.append("PR-visible JSON does not match authoritative object")
+        found=[]
+        for ref in gate_refs(r):
+            result=subprocess.run(("git","show-ref","--verify","--hash",ref),capture_output=True,text=True,check=False)
+            if result.returncode==0:found.append(result.stdout.strip())
+        if not found:p.append("exact Gate Record ref missing")
+        elif any(x!=commit for x in found):p.append("exact Gate Record ref points elsewhere")
+    except (ValueError,json.JSONDecodeError) as e:p.append(f"invalid Gate Record object: {e}")
+    return p
+def validate_set(records,base,candidate,candidate_tree,pr,required,commits=None):
+    p=[]
+    for r in records:p.extend(f"{r.get('gate_record_id')}: {x}" for x in validate_record(r))
+    if p:return p
+    p.extend(validate_graph(records,base,candidate,candidate_tree,pr,required))
+    if commits is not None:
+        if set(commits)!=set(r["gate_record_id"] for r in records):p.append("record/object ID sets disagree")
+        for r in records:
+            if r["gate_record_id"] not in commits:p.append(f"missing record object: {r['gate_record_id']}")
+            else:p.extend(f"{r['gate_record_id']}: {x}" for x in validate_record_object(r,commits[r["gate_record_id"]]))
+    return p
 
-if __name__=="__main__": sys.exit(main())
+def main():
+    a=argparse.ArgumentParser();a.add_argument("record_files",nargs="+");a.add_argument("--record-commit",action="append",default=[]);a.add_argument("--base",required=True);a.add_argument("--candidate",required=True);a.add_argument("--tree",required=True);a.add_argument("--pr",type=int,required=True);a.add_argument("--require",nargs="+",choices=sorted(FORMAL_GATES),required=True);x=a.parse_args()
+    records=[json.loads(Path(f).read_text()) for f in x.record_files];commits=dict(v.split("=",1) for v in x.record_commit);p=validate_set(records,x.base,x.candidate,x.tree,x.pr,set(x.require),commits or None)
+    if p:print("Gate Record validation failed:");[print(f"- {e}") for e in p];return 1
+    print("Gate Record validation passed.");return 0
+if __name__=="__main__":sys.exit(main())

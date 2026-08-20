@@ -1,8 +1,9 @@
 """Verify exact governed candidate and authorized integration identities."""
 from __future__ import annotations
-import argparse, json, re, subprocess, sys
+import argparse, json, os, re, subprocess, sys
 from datetime import datetime
-from validate_gate_records import discover_record_objects, validate_set as validate_gate_record_set
+from validate_gate_records import RECORD_PATH as GATE_RECORD_PATH, validate_set as validate_gate_record_set
+from validate_evidence import validate_live
 
 SHA = re.compile(r"^[0-9a-f]{40}$")
 TRAILER = "Governance-Authorization"
@@ -66,7 +67,7 @@ def load_authorization(authorization: str) -> dict[str, object]:
     except ValueError as error: raise ValueError("authorization timestamp must be ISO-8601") from error
     return record
 
-def verify_integration(integration: str, authorization_arg: str | None = None) -> None:
+def verify_integration(integration: str, authorization_arg: str | None = None, reconcile_live: bool = False) -> None:
     require_sha(integration, "integration")
     authorization = trailer_value(integration, TRAILER)
     try: integration_pr = int(trailer_value(integration, PR_TRAILER))
@@ -78,11 +79,18 @@ def verify_integration(integration: str, authorization_arg: str | None = None) -
     require_sha(expected_base, "authorized base"); require_sha(expected_candidate, "authorized candidate")
     if record["pr_number"] != integration_pr: raise ValueError("authorization PR does not equal the exact integration PR trailer")
     canonical_ref = require_exact_authorization_ref(authorization, integration_pr, expected_candidate)
-    gate_records,gate_commits=discover_record_objects(integration_pr)
-    for expected_gate, authorized_commit in record["gate_record_commits"].items():
+    if reconcile_live:
+        token=os.environ.get("GITHUB_TOKEN"); repo=os.environ.get("GITHUB_REPOSITORY")
+        if not token or not repo: raise ValueError("live evidence reconciliation requires GITHUB_TOKEN and GITHUB_REPOSITORY")
+        live_problems=validate_live(repo,integration_pr,token,"origin",expected_base,expected_candidate,expected_tree,set(record["gate_record_commits"]))
+        if live_problems: raise ValueError("live PR/remote evidence reconciliation failed: "+"; ".join(live_problems))
+    gate_records=[];gate_commits={}
+    for expected_gate,authorized_commit in record["gate_record_commits"].items():
         require_sha(authorized_commit,f"{expected_gate} Gate Record commit")
-        matches=[r for r in gate_records if r.get("gate_type")==expected_gate and r.get("superseded_by") is None]
-        if len(matches)!=1 or gate_commits.get(matches[0].get("gate_record_id"))!=authorized_commit: raise ValueError(f"authorization does not name the exact active {expected_gate} Gate Record commit")
+        try:gate_record=json.loads(git("show",f"{authorized_commit}:{GATE_RECORD_PATH}"))
+        except json.JSONDecodeError as error:raise ValueError(f"invalid authorized {expected_gate} Gate Record JSON") from error
+        if gate_record.get("gate_type")!=expected_gate:raise ValueError(f"authorization Gate Record type mismatch: {expected_gate}")
+        gate_records.append(gate_record);gate_commits[gate_record.get("gate_record_id","")]=authorized_commit
     gate_problems=validate_gate_record_set(gate_records,expected_base,expected_candidate,expected_tree,integration_pr,set(record["gate_record_commits"]),gate_commits)
     if gate_problems: raise ValueError("authorized Gate Records are invalid: "+"; ".join(gate_problems))
     authorization_parents = git("show", "-s", "--format=%P", authorization).split()
@@ -98,9 +106,9 @@ def verify_integration(integration: str, authorization_arg: str | None = None) -
 def main() -> int:
     parser = argparse.ArgumentParser(); sub = parser.add_subparsers(dest="mode", required=True)
     candidate = sub.add_parser("candidate"); candidate.add_argument("--base", required=True); candidate.add_argument("--candidate", required=True)
-    integration = sub.add_parser("integration"); integration.add_argument("--integration", required=True); integration.add_argument("--authorization")
+    integration = sub.add_parser("integration"); integration.add_argument("--integration", required=True); integration.add_argument("--authorization"); integration.add_argument("--reconcile-live",action="store_true")
     args = parser.parse_args()
-    try: verify_candidate(args.base, args.candidate) if args.mode == "candidate" else verify_integration(args.integration, args.authorization)
+    try: verify_candidate(args.base, args.candidate) if args.mode == "candidate" else verify_integration(args.integration, args.authorization,args.reconcile_live)
     except ValueError as error: print(f"Integration identity validation failed: {error}", file=sys.stderr); return 1
     return 0
 

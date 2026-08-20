@@ -46,6 +46,9 @@ The table is a summary only. Each formal gate agent must publish its own schema-
 - Gate Record validator command/result:
 - Content-addressed Gate Record commit SHAs and exact canonical refs:
 - PR-comment JSON equals stored Gate Record JSON:
+- Complete live GitHub-comment / `origin` remote-ledger reconciliation:
+- Append-only repair claims and distinct independent recheck edges:
+- Unresolved historical BLOCKING/MAJOR finding inventory:
 
 - [ ] Implementation, Independent Code Review, QA, and Release are four different threads/agents; no thread occupies more than one role.
 - [ ] If Security is triggered, Security Review is separate from Implementation, Lead/gate authority, QA, and Release.

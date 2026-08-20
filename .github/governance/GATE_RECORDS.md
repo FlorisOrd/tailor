@@ -1,37 +1,35 @@
-# Gate Record Protocol
+# Append-Only Gate Record Protocol
 
-Formal gate evidence is JSON conforming to `gate-record.schema.json`. Before commenting, the performing agent creates an immutable commit whose sole parent is the candidate and whose `.github/governance/gate-record.json` is exactly that JSON. It publishes the commit at exactly `refs/governance/gate-records/pr-<pr>/<candidate>/<gate-record-id>`, then publishes its own PR comment:
+Each performing agent stores its schema-version-2 JSON in `.github/governance/gate-record.json` in an immutable commit whose sole parent is the candidate. It publishes that commit at exactly `refs/governance/gate-records/pr-<pr>/<candidate>/<gate-record-id>` and posts the same JSON itself as a top-level PR comment:
 
 ~~~markdown
 Gate-Record-Commit: <40-character commit SHA>
 
 ```gate-record
-{
-  "schema_version": 1,
-  "gate_record_id": "GATE-QA-20260820-001",
-  "gate_type": "QA",
-  "agent_role": "QA",
-  "agent_id": "codex-thread-or-agent-id",
-  "pr_number": 1,
-  "base_sha": "<40 lowercase hex>",
-  "candidate_sha": "<40 lowercase hex>",
-  "candidate_tree": "<40 lowercase hex>",
-  "timestamp": "2026-08-20T12:00:00Z",
-  "scope": "Acceptance criteria and regression suite",
-  "checks": ["command/procedure and result"],
-  "findings": [],
-  "disposition": "PASS",
-  "repository_state_changed": false,
-  "supersedes": null,
-  "superseded_by": null
-}
+{ "schema_version": 2, "gate_record_id": "GATE-...", "...": "..." }
 ```
 ~~~
 
-The validator requires comment/export JSON, stored JSON, commit parent, object SHA, and exact canonical ref to agree. A different or moved ref, altered JSON, reused ID, or another candidate fails closed.
+Historical records never change. A later record may point backward through `supersedes`; predecessors have no forward pointer. The graph must be complete, acyclic, unforked, ordered, and role/PR compatible.
 
-BLOCKING and MAJOR findings remain open until a later reciprocal successor carries the same finding ID as `CLOSED` and names its rechecking Gate Record. Links must exist, be reciprocal, preserve PR and gate type, advance candidate and timestamp, and remain acyclic. Never edit old evidence; candidate changes make it stale without erasing defect history.
+## Finding Lifecycle
 
-Before authorization, Release fetches and validates the complete `refs/governance/gate-records/pr-<pr>/` ledger, not a selected subset. This keeps every historical OPEN BLOCKING/MAJOR finding visible until a valid successor closes it. Release publishes its own Gate Record only after the complete graph passes.
+A finding is permanently recorded as `OPEN`. Closure is derived, never written back:
 
-Release records the exact Review, QA, and Security Gate Record commit SHAs in the authorization. It creates `.github/governance/authorization.json` in a dedicated candidate-parent commit, publishes it exactly at `refs/governance/authorizations/pr-<pr>/<candidate>`, and adds `Governance-PR: <pr>` plus `Governance-Authorization: <sha>` to the integration commit. Never move or reuse evidence refs.
+1. An `Implementation Repair` record adds a `repair_claims` edge naming the source Gate Record, finding ID, and repaired candidate. This does not close the finding.
+2. A later qualified record of the original gate type adds a `rechecks` edge naming the source finding, repair record, candidate, and `PASS` or `FAIL`.
+3. Only `PASS` by a recorded agent ID distinct from both originator and implementer closes the finding. Wrong role, wrong candidate, wrong ID, same agent, missing evidence, or failed recheck leaves it blocking.
+
+## Release Reconciliation
+
+Release validation independently:
+
+- queries current GitHub PR comments and parses declarations;
+- runs `git ls-remote` against `origin` for the complete PR Gate Record namespace;
+- fetches every discovered authoritative object;
+- compares PR JSON, declared object SHA, remote ref, stored JSON, candidate parent, and graph;
+- rejects omissions, additions, duplicates, mutations, forks, truncation, and source disagreement.
+
+Release embeds the exact active Review, QA, and Security record commit SHAs in its authorization. The integration commit carries `Governance-PR` and `Governance-Authorization` trailers.
+
+No separate manifest is used: without an externally protected anchor, a privileged writer who can delete refs could also delete or repoint a manifest head. Live GitHub-comment plus complete remote-ref reconciliation provides equivalent observable integrity without claiming protection that GitHub Free does not supply.

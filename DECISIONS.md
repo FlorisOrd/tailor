@@ -102,3 +102,14 @@ Use this file for decisions that materially shape architecture, delivery, securi
 - **Alternatives:** Accept any namespace ref, trust non-null supersession strings, or use mutable comments alone; rejected as fail-open.
 - **Consequences:** Evidence publication uses both Git objects and PR comments. The test suite mutates every critical policy contract. GitHub Free still cannot cryptographically identify the originating Codex process or stop an authorized repository writer from imitating a procedural role.
 - **Evidence / follow-up:** `GATE-REVIEW-05-20260820`, `.github/governance/`, `scripts/`, and `tests/`.
+
+## D-009 — Append-only evidence with live multi-source reconciliation
+
+- **Date:** 2026-08-20
+- **Status:** Accepted
+- **Context:** REVIEW-06 showed that immutable predecessors cannot acquire forward links, stored-object self-comparison does not verify PR-visible evidence, and local refs cannot prove a complete remote ledger.
+- **Decision:** Use backward-only successor edges, separate repair claims from distinct-agent rechecks, and derive closure from the complete graph. At Release, query current GitHub comments and independently enumerate/fetch the complete `origin` PR namespace; require one-to-one agreement with immutable objects and refs.
+- **Rationale:** This preserves immutable history, prevents repair claims from self-closing findings, and detects observable omission or disagreement between independent sources.
+- **Alternatives:** Mutable reciprocal links, selected local refs, or a manifest without an externally protected anchor; rejected. A deletable manifest head adds no deletion proof against the same privileged writer.
+- **Consequences:** GitHub API and remote access are Release dependencies. Current consistency is strongly verifiable; process authorship and privileged pre-observation deletion remain procedural limits.
+- **Evidence / follow-up:** `GATE-REVIEW-06-20260820`, `scripts/validate_evidence.py`, schemas, policy, workflow, and factory tests.

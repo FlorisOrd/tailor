@@ -17,7 +17,7 @@ The following files are configured on `bootstrap/agent-company`. They become the
 
 The Lead and Release roles procedurally enforce feature-branch work, exact-candidate identity, merge-commit-only integration, independent roles, evidence freshness, representative non-local high-risk staging, and separate merge/deploy authorizations. The GitHub PR and commit history provide the durable audit trail. Distinct Codex-agent roles may use one GitHub account, so GitHub identity alone cannot prove agent independence; the PR record must identify the separate threads/agents and their dispositions.
 
-Formal gate agents publish schema-valid Gate Record comments plus matching immutable candidate-parent commits at exact deterministic refs. Release embeds the exact Review/QA/Security evidence commit identities in a candidate-specific authorization commit at the exact PR/candidate ref. The merge commit references exact PR and authorization identities; CI verifies content, refs, parents, and trees. GitHub Free cannot prevent a repository writer from imitating these procedural publications or prove Codex-thread identity, so integrity is content-addressed and auditable but agent identity is not cryptographically enforced.
+Gate evidence is append-only: successors point backward, while finding repair claims and independent rechecks are distinct. Release queries live PR comments and `origin`'s complete PR namespace rather than trusting local refs. GitHub Free cannot prove process authorship, textual-agent physical identity, separate credentials, or non-deletion by a privileged writer before observation. It can strongly verify observed Git identities, content, deterministic refs, graph continuity, and current source agreement.
 
 ## Not Currently Hard-Enforced
 

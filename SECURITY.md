@@ -42,6 +42,8 @@ Use the shared taxonomy in `WORKFLOW.md`. Confirmed secret exposure, active comp
 
 Automated scans supplement rather than replace threat analysis. False positives require documented evidence and Security Review disposition; they are not silently ignored.
 
+Evidence integrity is a trust boundary. Release independently retrieves live PR comments and the complete canonical remote Gate Record namespace. Local cached refs, PR summaries, or a selected record subset are not authoritative. Source disagreement, missing history, unresolved serious findings, or a recheck by the originating/implementing recorded agent blocks release. GitHub Free cannot cryptographically prove process identity or historical non-deletion before observation.
+
 ## Private Reporting
 
 Keep vulnerability details out of public channels. Use a private GitHub security advisory or another owner-approved private channel once configured. Do not publish exploit details before remediation. External disclosure, legal notices, or acceptance of privacy/compliance risk requires owner approval.

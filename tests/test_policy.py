@@ -39,12 +39,18 @@ cases={
 "comment_mismatch_allowed":set_value(("evidence","content_addressing","comment_must_match_stored_json"),False),
 "gate_parent_not_candidate":set_value(("evidence","content_addressing","commit_parent_is_candidate"),False),
 "wrong_gate_ref_prefix":set_value(("evidence","content_addressing","canonical_ref_prefix"),"refs/anything/"),
-"supersession_not_reciprocal":set_value(("evidence","supersession","reciprocal"),False),
-"supersession_cycles_allowed":set_value(("evidence","supersession","acyclic"),False),
-"supersession_changes_role":set_value(("evidence","supersession","same_gate_type"),False),
-"supersession_changes_pr":set_value(("evidence","supersession","same_pr"),False),
-"supersession_unordered":set_value(("evidence","supersession","ordered_timestamp"),False),
-"open_serious_erased":set_value(("evidence","supersession","open_serious_findings_survive"),False),
+"forward_mutation_allowed":set_value(("evidence","append_only_graph","predecessor_never_mutated"),False),
+"supersession_cycles_allowed":set_value(("evidence","append_only_graph","acyclic"),False),
+"supersession_forks_allowed":set_value(("evidence","append_only_graph","no_forks"),False),
+"supersession_changes_role":set_value(("evidence","append_only_graph","same_gate_type_for_supersession"),False),
+"supersession_changes_pr":set_value(("evidence","append_only_graph","same_pr"),False),
+"supersession_unordered":set_value(("evidence","append_only_graph","ordered_timestamp"),False),
+"repair_claim_closes":set_value(("evidence","finding_lifecycle","repair_claim_does_not_close"),False),
+"same_agent_rechecks":set_value(("evidence","finding_lifecycle","closure_requires_distinct_rechecker"),False),
+"github_comments_ignored":set_value(("evidence","live_reconciliation","github_pr_comments_required"),False),
+"local_subset_trusted":set_value(("evidence","live_reconciliation","local_ref_subset_not_authoritative"),False),
+"source_disagreement_allowed":set_value(("evidence","live_reconciliation","source_disagreement_fails"),False),
+"missing_history_allowed":set_value(("evidence","live_reconciliation","missing_history_fails"),False),
 "candidate_change_not_stale":set_value(("stale_evidence","candidate_change_invalidates"),False),
 "repair_not_new_candidate":set_value(("stale_evidence","repair_creates_new_candidate"),False),
 "unaffected_self_attested":set_value(("stale_evidence","unaffected_requires_independent_gate_owner_record"),False),
@@ -76,14 +82,18 @@ cases={
 }
 for field in validator.RECORD_FIELDS: cases["missing_record_field_"+field]=remove(("evidence","required_gate_record_fields"),field)
 for field in validator.FINDING_FIELDS: cases["missing_finding_field_"+field]=remove(("evidence","required_finding_fields"),field)
+for field in validator.REPAIR_FIELDS: cases["missing_repair_field_"+field]=remove(("evidence","required_repair_claim_fields"),field)
+for field in validator.RECHECK_FIELDS: cases["missing_recheck_field_"+field]=remove(("evidence","required_recheck_fields"),field)
 for field in validator.AUTH_FIELDS: cases["missing_auth_field_"+field]=remove(("integration","authorization_required_fields"),field)
 for field in validator.RELEASE_IDENTITY: cases["missing_release_identity_"+field]=remove(("integration","release_identity_fields"),field)
 for field in ("base_sha","candidate_sha","candidate_tree"): cases["missing_candidate_identity_"+field]=remove(("evidence","candidate_identity_fields"),field)
 for value in ("BLOCKING","MAJOR","MINOR","SUGGESTION"): cases["missing_finding_severity_"+value]=remove(("evidence","finding_severities"),value)
-for value in ("OPEN","CLOSED"): cases["missing_finding_status_"+value]=remove(("evidence","finding_statuses"),value)
+for value in ("OPEN",): cases["missing_finding_status_"+value]=remove(("evidence","finding_statuses"),value)
 for gate in ("Independent Code Review","QA","Security Review","Release"): cases["missing_gate_"+gate.replace(" ","_")]=remove(("evidence","formal_gate_types"),gate)
 for category in validator.HIGH_RISK: cases["missing_high_risk_"+category]=remove(("high_risk_staging","categories"),category)
 for action in validator.OWNER_DOES_NOT: cases["owner_must_"+action]=remove(("owner_boundaries","owner_does_not"),action)
+for section in ("append_only_graph","finding_lifecycle","live_reconciliation"):
+ for key in POLICY["evidence"][section]: cases[f"weaken_{section}_{key}"]=set_value(("evidence",section,key),False)
 for name,mutate in cases.items(): add_case(name,mutate)
 
 if __name__=="__main__": unittest.main()

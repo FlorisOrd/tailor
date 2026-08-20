@@ -6,7 +6,7 @@ Critical controls are defined by `.github/governance/policy.json`; prose cannot 
 
 A claim is not verification. Evidence must identify the recorded base SHA, exact candidate SHA and tree hash, command or procedure, result, environment, and relevant artifact or observation. After integration it must also identify the main integration SHA/tree, parent/base verification, and candidate/integration tree equality. Store the durable summary in the GitHub PR using `.github/PULL_REQUEST_TEMPLATE.md`; chat may assist but is not the record.
 
-Every repair or other material change creates a new candidate. Affected automated tests, review, QA, browser, accessibility, security, and staging evidence must be rerun or explicitly marked unaffected by an independent owner of that gate. Release rejects stale evidence. Formal gate proof is a JSON Gate Record conforming to `.github/governance/gate-record.schema.json`, published directly in the PR by the performing agent; the PR-body summary is not authoritative. Validate exported records with `scripts/validate_gate_records.py`.
+Every repair creates a new candidate. The implementer publishes an append-only repair claim; it never closes a finding. A distinct qualified agent publishes the recheck. Formal proof is matching live PR JSON and an immutable Gate Record object; Release validates both plus the complete remote ledger using `scripts/validate_evidence.py`. Stale, missing, selected-subset, or disagreeing evidence fails.
 
 ## Automated Quality Baseline
 
