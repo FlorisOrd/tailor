@@ -1,0 +1,44 @@
+{
+  "schema_version": 2,
+  "gate_record_id": "GATE-REPAIR-07-20260820",
+  "gate_type": "Implementation Repair",
+  "agent_role": "Implementation Repair",
+  "agent_id": "/root",
+  "pr_number": 1,
+  "base_sha": "e030baa34f08a5b0cfd8e1c45d67f45be50f3753",
+  "candidate_sha": "a3abacb0fe6110dbe62980dadec6aaf8392c421f",
+  "candidate_tree": "9465a17808754796c56992051da4cf01ebbf7aef",
+  "timestamp": "2026-08-20T18:40:22Z",
+  "scope": "Append-only evidence lifecycle, complete remote evidence discovery, live PR reconciliation, enforcement, documentation, and factory tests for REVIEW-05-F2, REVIEW-06-F1, and REVIEW-06-F2.",
+  "checks": [
+    "Governance validator passed locally",
+    "Full automated test suite passed locally: 204 tests",
+    "Git diff whitespace validation passed",
+    "Implementation repair only; independent recheck remains required"
+  ],
+  "findings": [],
+  "repair_claims": [
+    {
+      "source_gate_record_id": "GATE-REVIEW-05-20260820",
+      "source_finding_id": "REVIEW-05-F2",
+      "repaired_candidate_sha": "a3abacb0fe6110dbe62980dadec6aaf8392c421f",
+      "summary": "Replaced mutable finding closure with an append-only graph in which only a later independent PASS recheck can close a finding."
+    },
+    {
+      "source_gate_record_id": "GATE-REVIEW-06-20260820",
+      "source_finding_id": "REVIEW-06-F1",
+      "repaired_candidate_sha": "a3abacb0fe6110dbe62980dadec6aaf8392c421f",
+      "summary": "Added release-time independent retrieval and one-to-one reconciliation of live PR-visible records against immutable Git objects and refs."
+    },
+    {
+      "source_gate_record_id": "GATE-REVIEW-06-20260820",
+      "source_finding_id": "REVIEW-06-F2",
+      "repaired_candidate_sha": "a3abacb0fe6110dbe62980dadec6aaf8392c421f",
+      "summary": "Made evidence discovery enumerate complete remote origin governance refs rather than trusting local refs or a selected subset."
+    }
+  ],
+  "rechecks": [],
+  "disposition": "PASS",
+  "repository_state_changed": true,
+  "supersedes": []
+}
