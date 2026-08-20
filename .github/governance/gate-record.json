@@ -1,0 +1,66 @@
+{
+  "schema_version": 2,
+  "gate_record_id": "GATE-REVIEW-07-20260820",
+  "gate_type": "Independent Code Review",
+  "agent_role": "Independent Code Review",
+  "agent_id": "REVIEW-07 Factory Governance Verification",
+  "pr_number": 1,
+  "base_sha": "e030baa34f08a5b0cfd8e1c45d67f45be50f3753",
+  "candidate_sha": "82795242c773515c765dc8f49d88cb4ed492f01e",
+  "candidate_tree": "027e33587c6114d30aa5f07ba2631a41e6b21148",
+  "timestamp": "2026-08-20T19:00:18Z",
+  "scope": "Independent adversarial review of the exact current governance candidate, append-only finding lifecycle, recorded-agent separation, live PR-visible reconciliation, complete remote-ledger discovery, evidence truncation, policy fail-closed controls, factory tests, workflow permissions, and remote CI.",
+  "checks": [
+    "Verified PR #1 is open, draft, unmerged, and bound to the expected base, candidate, and tree; GitHub and local graph report 0 behind and 8 ahead.",
+    "Reviewed repair diff 0dca1fad3b26432a6747eab6a085cb5608e16eaf..82795242c773515c765dc8f49d88cb4ed492f01e and confirmed no product code was introduced.",
+    "Ran the full factory suite: 204 tests passed in 77.180 seconds.",
+    "Independently reviewed append-only lifecycle, exact-finding repair/recheck, distinct recorded-agent, stale-candidate, remote enumeration, and source disagreement paths.",
+    "Confirmed GitHub Actions run 32405167159 is successful for the exact candidate: governance, 204-test suite, candidate identity, and Gitleaks passed; PR-inapplicable integration was skipped.",
+    "Confirmed workflow permissions remain read-only and the duplicate YAML env mapping repair is minimal.",
+    "Real PR reconciliation fails because historical REVIEW-05 visible evidence has no Gate-Record-Commit declaration, and legacy supersession is ignored when determining the active append-only graph.",
+    "Confirmed the PR body contains stale 7-ahead command evidence while authoritative GitHub and local divergence is 8 ahead."
+  ],
+  "findings": [
+    {
+      "finding_id": "REVIEW-07-F1",
+      "severity": "MAJOR",
+      "summary": "The schema-v2 live/graph validator is not migration-compatible with the authoritative schema-v1 evidence already on PR #1. REVIEW-05's live comment contains fenced Gate Record JSON without Gate-Record-Commit, so parse_visible_declarations always reports it invalid; validate_graph also ignores REVIEW-06's legacy supersedes edge, leaving REVIEW-05 active alongside a current review. Complete-ledger validation therefore cannot pass without mutating history. Preserve old comments and records, add an append-only migration declaration or rigorously bind legacy JSON to its unique canonical remote object, honor validated legacy supersession in active-record calculation, and add real mixed-version regression fixtures.",
+      "status": "OPEN"
+    },
+    {
+      "finding_id": "REVIEW-07-F2",
+      "severity": "MINOR",
+      "summary": "The PR work record contradicts itself: the canonical candidate section and GitHub graph correctly report 8 commits ahead, while the automated-evidence table reports 7. Correct the durable summary before Release; Implementation owns the update with target before merge authorization.",
+      "status": "OPEN"
+    }
+  ],
+  "repair_claims": [],
+  "rechecks": [
+    {
+      "source_gate_record_id": "GATE-REVIEW-05-20260820",
+      "source_finding_id": "REVIEW-05-F2",
+      "repair_gate_record_id": "GATE-REPAIR-08-20260820",
+      "rechecked_candidate_sha": "82795242c773515c765dc8f49d88cb4ed492f01e",
+      "outcome": "PASS"
+    },
+    {
+      "source_gate_record_id": "GATE-REVIEW-06-20260820",
+      "source_finding_id": "REVIEW-06-F1",
+      "repair_gate_record_id": "GATE-REPAIR-08-20260820",
+      "rechecked_candidate_sha": "82795242c773515c765dc8f49d88cb4ed492f01e",
+      "outcome": "FAIL"
+    },
+    {
+      "source_gate_record_id": "GATE-REVIEW-06-20260820",
+      "source_finding_id": "REVIEW-06-F2",
+      "repair_gate_record_id": "GATE-REPAIR-08-20260820",
+      "rechecked_candidate_sha": "82795242c773515c765dc8f49d88cb4ed492f01e",
+      "outcome": "PASS"
+    }
+  ],
+  "disposition": "FAIL",
+  "repository_state_changed": false,
+  "supersedes": [
+    "GATE-REVIEW-06-20260820"
+  ]
+}
