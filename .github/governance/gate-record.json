@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "record_type": "Bootstrap Governance v0 Gate Record",
+  "gate_record_id": "BOOTSTRAP-GATE-REVIEW-BV0-01-20260820",
+  "gate_type": "Independent Code Review",
+  "agent_role": "Independent Code Review",
+  "agent_id": "REVIEW-BV0-01 Frozen Bootstrap Verification",
+  "publisher_agent_id": "REVIEW-BV0-01 Frozen Bootstrap Verification",
+  "pr_number": 1,
+  "base_sha": "e030baa34f08a5b0cfd8e1c45d67f45be50f3753",
+  "candidate_sha": "57fe04b9535f2fd010d6679d16819ff4def52b70",
+  "candidate_tree": "ad42ba66ca1c07f9609f14cd04e2a7ef525ee31a",
+  "timestamp": "2026-08-20T21:31:31Z",
+  "scope": "Fresh independent complete-candidate review of PR #1 under the frozen Bootstrap Governance v0 contract, including identity, active Gate Record protocol, role separation, freshness, finding handling, exact authorization and integration, fail-closed CI, policy mutations, historical-evidence boundary, owner protection, remote CI run 32418706180, and the 101-test regression suite.",
+  "checks": [
+    "Verified PR #1 is open, draft, and unmerged; local and remote head equal candidate 57fe04b9535f2fd010d6679d16819ff4def52b70; local and remote main equal base e030baa34f08a5b0cfd8e1c45d67f45be50f3753; tree equals ad42ba66ca1c07f9609f14cd04e2a7ef525ee31a; base is an ancestor; divergence is 0 behind and 10 ahead; worktree was clean before evidence publication.",
+    "Reviewed the complete 25-file candidate against main; confirmed no product code and no active Factory-v1 migration/history machinery in the Bootstrap-v0 authorization path.",
+    "Ran python -m unittest discover -s tests -p test_*.py: 101 tests passed in 135.866 seconds; governance validation and candidate identity validation passed.",
+    "Exercised recorded role-separation, stale-evidence, serious-finding, malformed-record, current-visible-copy, authorization, exact-integration, fail-closed workflow, mandatory Gitleaks, and policy-mutation controls in disposable state.",
+    "Inspected remote run 32418706180 for the exact candidate: Governance Baseline completed successfully; Validate governance, Verify candidate base and tree identity, and Scan committed history for secrets passed; pre-merge integration verification was correctly skipped.",
+    "Added and removed a temporary adversarial test proving verify_authorization accepts a self-consistent wrong live PR base: base_sha equal to candidate_sha, matching fabricated current Gate Records, canonical refs, and authorization object were reported verified because live PR base/head identity is never reconciled.",
+    "Confirmed REVIEW-05 through REVIEW-08 remain visible audit history and are not parsed as current Bootstrap-v0 PASS evidence; no historical FAIL was converted to PASS.",
+    "Confirmed current browser, product accessibility, product SCA, runtime staging, deployment, and monitoring evidence are legitimately N/A because the repository contains no product, while future applicable safeguards remain defined."
+  ],
+  "findings": [
+    {
+      "finding_id": "REVIEW-BV0-01-F1",
+      "severity": "MAJOR",
+      "summary": "scripts/verify_integration.py verify_authorization and scripts/validate_evidence.py live reconciliation never compare the authorization PR/base/candidate tuple to the live pull request or current remote main. A self-consistent wrong tuple, including base_sha equal to candidate_sha, matching Gate Records/refs/comments, and a successful candidate CI run is accepted. Release therefore cannot rely on the validator to reject a wrong PR base, related-but-wrong candidate/base, or moved base as the frozen exact-authorization contract requires. Repair by fetching the claimed PR and remote main during mandatory live reconciliation, requiring exact PR number, open/unmerged state, head SHA, base SHA/ref, remote branch SHA, remote main SHA, candidate tree and ancestry/divergence, and add self-consistent wrong-tuple and moved-base regression tests."
+    }
+  ],
+  "disposition": "FAIL"
+}
