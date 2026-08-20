@@ -1,19 +1,33 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Release Authorization",
+  "title": "Bootstrap Governance v0 Merge Authorization",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "authorization_id", "pr_number", "base_sha", "candidate_sha", "candidate_tree", "timestamp", "release_agent_id", "release_gate_record_id", "gate_record_commits"],
+  "required": ["schema_version", "record_type", "authorization_id", "pr_number", "base_sha", "candidate_sha", "candidate_tree", "timestamp", "implementation_agent_id", "lead_agent_id", "release_agent_id", "ci_run_id", "ci_candidate_sha", "gate_record_commits"],
   "properties": {
     "schema_version": {"const": 1},
-    "authorization_id": {"type": "string", "pattern": "^AUTH-[A-Z0-9][A-Z0-9-]{2,63}$"},
+    "record_type": {"const": "Bootstrap Governance v0 Merge Authorization"},
+    "authorization_id": {"type": "string", "minLength": 1},
     "pr_number": {"type": "integer", "minimum": 1},
     "base_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
     "candidate_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
     "candidate_tree": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
     "timestamp": {"type": "string", "format": "date-time"},
+    "implementation_agent_id": {"type": "string", "minLength": 1},
+    "lead_agent_id": {"type": "string", "minLength": 1},
     "release_agent_id": {"type": "string", "minLength": 1},
-    "release_gate_record_id": {"type": "string", "pattern": "^GATE-[A-Z0-9][A-Z0-9-]{2,63}$"},
-    "gate_record_commits": {"type": "object", "additionalProperties": false, "required": ["Independent Code Review", "QA", "Security Review"], "properties": {"Independent Code Review": {"type": "string", "pattern": "^[0-9a-f]{40}$"}, "QA": {"type": "string", "pattern": "^[0-9a-f]{40}$"}, "Security Review": {"type": "string", "pattern": "^[0-9a-f]{40}$"}}}
+    "ci_run_id": {"type": "integer", "minimum": 1},
+    "ci_candidate_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "gate_record_commits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["Independent Code Review", "QA", "Security Review", "Release"],
+      "properties": {
+        "Independent Code Review": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "QA": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "Security Review": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "Release": {"type": "string", "pattern": "^[0-9a-f]{40}$"}
+      }
+    }
   }
 }

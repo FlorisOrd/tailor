@@ -1,66 +1,31 @@
-import json,os,subprocess,sys,tempfile,unittest
+import copy,json,os,subprocess,sys,tempfile,unittest
 from pathlib import Path
-ROOT=Path(__file__).resolve().parents[1]; sys.path.insert(0,str(ROOT/"scripts")); import verify_integration as verifier
-
-class AuthorizationIntegrationTests(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.temp=tempfile.TemporaryDirectory(); cls.repo=Path(cls.temp.name); cls.old=os.getcwd(); os.chdir(cls.repo)
-        cls.git("init","-q"); cls.git("config","user.name","Factory"); cls.git("config","user.email","factory@example.invalid")
-        cls.write("file.txt","base0\n"); cls.commit("base0"); cls.base0=cls.sha(); cls.write("file.txt","base1\n"); cls.commit("base1"); cls.base=cls.sha()
-        cls.write("feature.txt","candidate\n"); cls.commit("candidate"); cls.candidate=cls.sha(); cls.tree=cls.git("rev-parse",cls.candidate+"^{tree}")
-        cls.write("related.txt","related\n"); cls.commit("related"); cls.related=cls.sha(); cls.related_tree=cls.git("rev-parse",cls.related+"^{tree}"); cls.unrelated=cls.git("commit-tree",cls.tree,"-m","unrelated")
-        cls.gate_commits={gate:cls.make_gate(gate,index) for index,gate in enumerate(("Independent Code Review","QA","Security Review"),1)}
-        cls.auth=cls.make_auth(1,cls.candidate,cls.tree); cls.integration=cls.merge(cls.tree,cls.base,cls.candidate,cls.auth,1)
-    @classmethod
-    def tearDownClass(cls): os.chdir(cls.old); cls.temp.cleanup()
-    @classmethod
-    def git(cls,*a): return subprocess.run(("git",*a),check=True,capture_output=True,text=True).stdout.strip()
-    @classmethod
-    def write(cls,path,text): p=cls.repo/path; p.parent.mkdir(parents=True,exist_ok=True); p.write_text(text)
-    @classmethod
-    def commit(cls,msg): cls.git("add","--all"); cls.git("commit","-q","-m",msg)
-    @classmethod
-    def sha(cls): return cls.git("rev-parse","HEAD")
-    @classmethod
-    def make_gate(cls,gate,index):
-        rid=f"GATE-TEST-{index:03d}"; record={"schema_version":2,"gate_record_id":rid,"gate_type":gate,"agent_role":gate,"agent_id":f"agent-{index}","pr_number":1,"base_sha":cls.base,"candidate_sha":cls.candidate,"candidate_tree":cls.tree,"timestamp":f"2026-08-20T1{index}:00:00Z","scope":"factory","checks":["tests"],"findings":[],"repair_claims":[],"rechecks":[],"disposition":"PASS","repository_state_changed":False,"supersedes":[]}
-        cls.git("checkout","-q",cls.candidate); cls.write(".github/governance/gate-record.json",json.dumps(record)); cls.git("add","--all"); cls.git("commit","-q","-m",f"gate {index}"); commit=cls.sha(); cls.git("update-ref",f"refs/governance/gate-records/pr-1/{cls.candidate}/{rid}",commit); return commit
-    @classmethod
-    def auth_record(cls,pr,candidate,tree): return {"schema_version":1,"authorization_id":f"AUTH-TEST-{pr:03d}","pr_number":pr,"base_sha":cls.base,"candidate_sha":candidate,"candidate_tree":tree,"timestamp":"2026-08-20T12:00:00Z","release_agent_id":"release-agent","release_gate_record_id":"GATE-RELEASE-001","gate_record_commits":cls.gate_commits}
-    @classmethod
-    def make_auth(cls,pr,candidate,tree,publish=True,ref_pr=None,ref_candidate=None,ref_tail=None):
-        cls.git("checkout","-q",candidate); cls.write(".github/governance/authorization.json",json.dumps(cls.auth_record(pr,candidate,tree))); cls.git("add","--all"); cls.git("commit","-q","-m","authorization"); auth=cls.sha()
-        if publish:
-            tail=ref_tail or f"pr-{ref_pr or pr}/{ref_candidate or candidate}"; cls.git("update-ref",f"refs/governance/authorizations/{tail}",auth)
-        return auth
-    @classmethod
-    def merge(cls,tree,base,candidate,auth,pr=1): return cls.git("commit-tree",tree,"-p",base,"-p",candidate,"-m",f"integration\n\nGovernance-PR: {pr}\nGovernance-Authorization: {auth}")
-    def setUp(self): self.git("update-ref",f"refs/governance/authorizations/pr-1/{self.candidate}",self.auth)
-    def fails(self,sha):
-        with self.assertRaises(ValueError): verifier.verify_integration(sha)
-    def test_exact_canonical_ref_and_authorization_pass(self): verifier.verify_integration(self.integration)
-    def test_wrong_base_fails(self): self.fails(self.merge(self.tree,self.unrelated,self.candidate,self.auth))
-    def test_related_wrong_base_fails(self): self.fails(self.merge(self.tree,self.base0,self.candidate,self.auth))
-    def test_wrong_candidate_fails(self): self.fails(self.merge(self.tree,self.base,self.unrelated,self.auth))
-    def test_related_wrong_candidate_fails(self): self.fails(self.merge(self.tree,self.base,self.related,self.auth))
-    def test_wrong_tree_fails(self): self.fails(self.merge(self.related_tree,self.base,self.candidate,self.auth))
-    def test_one_parent_fails(self): self.fails(self.git("commit-tree",self.tree,"-p",self.base,"-m",f"integration\n\nGovernance-PR: 1\nGovernance-Authorization: {self.auth}"))
-    def test_correct_commit_under_wrong_pr_ref_fails(self):
-        self.git("update-ref","-d",f"refs/governance/authorizations/pr-1/{self.candidate}"); self.git("update-ref",f"refs/governance/authorizations/pr-2/{self.candidate}",self.auth); self.fails(self.integration)
-    def test_correct_commit_under_wrong_candidate_ref_fails(self):
-        self.git("update-ref","-d",f"refs/governance/authorizations/pr-1/{self.candidate}"); self.git("update-ref",f"refs/governance/authorizations/pr-1/{self.related}",self.auth); self.fails(self.integration)
-    def test_correct_commit_under_arbitrary_governed_ref_fails(self):
-        self.git("update-ref","-d",f"refs/governance/authorizations/pr-1/{self.candidate}"); self.git("update-ref","refs/governance/authorizations/arbitrary",self.auth); self.fails(self.integration)
-    def test_canonical_ref_moved_fails(self): self.git("update-ref",f"refs/governance/authorizations/pr-1/{self.candidate}",self.unrelated); self.fails(self.integration)
-    def test_another_pr_authorization_fails(self):
-        auth=self.make_auth(2,self.candidate,self.tree); self.fails(self.merge(self.tree,self.base,self.candidate,auth,1))
-    def test_another_candidate_authorization_fails(self):
-        auth=self.make_auth(1,self.related,self.related_tree); self.fails(self.merge(self.tree,self.base,self.candidate,auth,1))
-    def test_malformed_ref_fails(self):
-        self.git("update-ref","-d",f"refs/governance/authorizations/pr-1/{self.candidate}"); self.git("update-ref",f"refs/governance/authorizations/1/{self.candidate}",self.auth); self.fails(self.integration)
-    def test_missing_canonical_ref_fails(self): self.git("update-ref","-d",f"refs/governance/authorizations/pr-1/{self.candidate}"); self.fails(self.integration)
-    def test_ambiguous_metadata_fails(self):
-        bad=self.git("commit-tree",self.tree,"-p",self.base,"-p",self.candidate,"-m",f"integration\n\nGovernance-PR: 1\nGovernance-PR: 2\nGovernance-Authorization: {self.auth}"); self.fails(bad)
-
-if __name__=="__main__": unittest.main()
+ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT/"scripts"))
+from tests.test_gate_records import record
+from verify_integration import verify_authorization,verify_integration
+class IntegrationTests(unittest.TestCase):
+ def setUp(self):
+  self.temp=tempfile.TemporaryDirectory();self.repo=Path(self.temp.name);self.old=os.getcwd();os.chdir(self.repo);self.git("init","-q");self.git("config","user.name","Factory");self.git("config","user.email","factory@example.invalid");self.write("base.txt","base");self.git("add","--all");self.git("commit","-q","-m","base");self.base=self.git("rev-parse","HEAD");self.write("change.txt","candidate");self.git("add","--all");self.git("commit","-q","-m","candidate");self.candidate=self.git("rev-parse","HEAD");self.tree=self.git("rev-parse","HEAD^{tree}");self.records={};self.commits={}
+  agents={"Independent Code Review":"review","QA":"qa","Security Review":"security","Release":"release"}
+  for gate,agent in agents.items():
+   r=record(gate,agent,base_sha=self.base,candidate_sha=self.candidate,candidate_tree=self.tree);c=self.object_commit(".github/governance/gate-record.json",r,self.candidate,"gate");self.git("update-ref",f"refs/governance/bootstrap-gates/pr-1/{self.candidate}/{gate.lower().replace(' ','-')}/{r['gate_record_id']}",c);self.records[gate]=r;self.commits[gate]=c
+  self.auth=self.authorization();self.integration=self.merge(self.base,self.candidate,self.tree,self.auth)
+ def tearDown(self):os.chdir(self.old);self.temp.cleanup()
+ def git(self,*a,input=None):return subprocess.run(("git",*a),input=input,check=True,capture_output=True,text=True).stdout.strip()
+ def write(self,path,text):p=Path(path);p.parent.mkdir(parents=True,exist_ok=True);p.write_text(text)
+ def object_commit(self,path,obj,parent,message):
+  index=self.repo/(message+".index");env=os.environ|{"GIT_INDEX_FILE":str(index)};subprocess.run(("git","read-tree",parent),check=True,env=env);blob=subprocess.run(("git","hash-object","-w","--stdin"),input=json.dumps(obj),text=True,capture_output=True,check=True).stdout.strip();subprocess.run(("git","update-index","--add","--cacheinfo","100644",blob,path),check=True,env=env);tree=subprocess.run(("git","write-tree"),capture_output=True,text=True,check=True,env=env).stdout.strip();return self.git("commit-tree",tree,"-p",parent,"-m",message)
+ def authorization(self,**changes):
+  a={"schema_version":1,"record_type":"Bootstrap Governance v0 Merge Authorization","authorization_id":"AUTH-1","pr_number":1,"base_sha":self.base,"candidate_sha":self.candidate,"candidate_tree":self.tree,"timestamp":"2026-08-20T12:00:00Z","implementation_agent_id":"implementation","lead_agent_id":"lead","release_agent_id":"release","ci_run_id":123,"ci_candidate_sha":self.candidate,"gate_record_commits":self.commits};a.update(changes);c=self.object_commit(".github/governance/authorization.json",a,self.candidate,"auth"+str(len(list(self.repo.glob('auth*.index')))));self.git("update-ref",f"refs/governance/authorizations/pr-1/{a['candidate_sha']}",c);return c
+ def merge(self,first,second,tree,auth):return self.git("commit-tree",tree,"-p",first,"-p",second,"-m",f"merge\n\nGovernance-PR: 1\nGovernance-Authorization: {auth}")
+ def test_exact_integration_passes(self):verify_integration(self.integration)
+ def test_exact_authorization_passes_before_merge(self):verify_authorization(self.auth)
+ def test_missing_authorization_ref_fails(self):self.git("update-ref","-d",f"refs/governance/authorizations/pr-1/{self.candidate}");self.assertRaises(ValueError,verify_integration,self.integration)
+ def test_moved_authorization_ref_fails(self):wrong=self.git("commit-tree",self.tree,"-p",self.candidate,"-m","wrong");self.git("update-ref",f"refs/governance/authorizations/pr-1/{self.candidate}",wrong);self.assertRaises(ValueError,verify_integration,self.integration)
+ def test_wrong_authorization_candidate_fails(self):a=self.authorization(ci_candidate_sha="9"*40);m=self.merge(self.base,self.candidate,self.tree,a);self.assertRaises(ValueError,verify_integration,m)
+ def test_wrong_first_parent_fails(self):m=self.merge(self.candidate,self.candidate,self.tree,self.auth);self.assertRaises(ValueError,verify_integration,m)
+ def test_wrong_second_parent_fails(self):m=self.merge(self.base,self.base,self.tree,self.auth);self.assertRaises(ValueError,verify_integration,m)
+ def test_wrong_integration_tree_fails(self):wrong=self.git("rev-parse",f"{self.base}^{{tree}}");m=self.merge(self.base,self.candidate,wrong,self.auth);self.assertRaises(ValueError,verify_integration,m)
+ def test_missing_gate_ref_fails(self):r=self.records["QA"];self.git("update-ref","-d",f"refs/governance/bootstrap-gates/pr-1/{self.candidate}/qa/{r['gate_record_id']}");self.assertRaises(ValueError,verify_integration,self.integration)
+ def test_wrong_gate_candidate_fails(self):self.records["QA"]["candidate_sha"]="9"*40;bad=self.object_commit(".github/governance/gate-record.json",self.records["QA"],self.candidate,"badgate");commits=self.commits|{"QA":bad};a=self.authorization(gate_record_commits=commits);m=self.merge(self.base,self.candidate,self.tree,a);self.assertRaises(ValueError,verify_integration,m)
+if __name__=="__main__":unittest.main()

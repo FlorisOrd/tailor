@@ -122,3 +122,12 @@ Use this file for decisions that materially shape architecture, delivery, securi
 - **Rationale:** REVIEW-07 showed that REVIEW-05 predates content-addressed publication and cannot honestly acquire a modern declaration or original ref after the fact.
 - **Consequences:** Migration proves content observed at binding time, never prior immutability or approval. Both remote namespaces and live comments must reconcile; modern records cannot claim legacy status.
 - **Evidence / follow-up:** `GATE-REVIEW-07-20260820`; REVIEW-08 must independently verify the implementation.
+
+## D-011 — Freeze Bootstrap Governance v0 and defer Factory v1
+
+- **Date:** 2026-08-20
+- **Status:** Accepted; supersedes D-009 and D-010 for the active release path without deleting their history.
+- **Context:** Repeated bootstrap reviews turned PR #1 into a self-referential lifetime evidence-migration platform. REVIEW-08 confirmed that continuing this path created new migration and historical-closure obligations unrelated to safely bootstrapping product development.
+- **Decision:** Freeze PR #1 as Bootstrap Governance v0. Use one fresh candidate-specific Gate Record protocol and explicit current Review, QA, Security, and Release selection. Preserve REVIEW-05 through REVIEW-08 as audit history, but do not normalize them for Release.
+- **Rationale:** Fresh exact-candidate gates, fail-closed CI, and exact integration prevent unsafe or self-approved code from entering `main` without requiring the bootstrap to certify its own evolving history.
+- **Consequences:** Lifetime evidence migration, generalized finding graphs, orchestration, profiles, and upgrade compatibility move to the future `agent-software-factory` repository, designed with a uniform protocol from its first commit. Independent gates and exact authorization/integration are not relaxed.

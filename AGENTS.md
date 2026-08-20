@@ -6,7 +6,7 @@ The product owner defines product outcomes but does not edit, inspect, debug, or
 
 GitHub is the permanent source of truth. Never commit secrets or populated environment files. Use proven, maintainable approaches and record consequential decisions in `DECISIONS.md`.
 
-The authoritative policy is `.github/governance/policy.json`. Gate evidence is append-only matching PR JSON plus immutable Git objects. Repairs never self-close findings; a qualified distinct recorded agent must recheck them. Release independently reconciles live GitHub comments with `origin`'s complete PR evidence namespace. Pre-protocol evidence uses the allowlisted provenance-only binding process; migration is never approval. A summary, mutable comment alone, or local ref subset is never proof.
+The authoritative policy is `.github/governance/policy.json`. Fresh formal gates use the single candidate-specific Bootstrap v0 protocol in `.github/governance/GATE_RECORDS.md`. A serious finding requires repair, a new candidate, and fresh independent verification. Release explicitly selects exact current Review, QA, Security, and Release evidence; historical records are audit context, never current approval. Lead transcription cannot replace gate-agent publication.
 
 ## Change Control
 

@@ -1,116 +1,45 @@
 {
   "schema_version": 1,
-  "authority": "canonical",
-  "control_ids": {
-    "role_separation": "GOV-ROLE-SEPARATION",
-    "security_independence": "GOV-SECURITY-INDEPENDENCE",
-    "exact_integration": "GOV-EXACT-INTEGRATION",
-    "gate_records": "GOV-GATE-RECORDS",
-    "stale_evidence": "GOV-STALE-EVIDENCE",
-    "high_risk_staging": "GOV-HIGH-RISK-STAGING",
-    "owner_protection": "GOV-OWNER-PROTECTION",
-    "exception_authority": "GOV-EXCEPTION-AUTHORITY",
-    "release_authority": "GOV-RELEASE-AUTHORITY"
-  },
-  "material_work": {
-    "ambiguity_defaults_to_material": true,
-    "categories": ["application_code", "configuration", "dependencies", "data_schema", "infrastructure", "deployment", "governance", "security", "user_experience", "apis", "data_handling", "build_test_tooling", "release_process"]
-  },
+  "authority": "Bootstrap Governance v0",
+  "specification_frozen": true,
+  "scope": "Repository bootstrap only; reusable Factory v1 capabilities are deferred to agent-software-factory.",
+  "material_work": {"ambiguity_defaults_to_material": true, "requires_isolated_branch": true, "requires_pull_request": true},
   "roles": {
     "required": ["Implementation", "Independent Code Review", "QA", "Release"],
     "mutually_distinct": ["Implementation", "Independent Code Review", "QA", "Release"],
+    "security_triggered": true,
     "security_distinct_from": ["Implementation", "Lead / Engineering Manager", "QA", "Release"],
-    "release_only_authorities": ["Authorization to Merge", "Authorization to Deploy"]
+    "lead_transcription_is_gate_evidence": false
   },
-  "non_waivable_controls": ["GOV-ROLE-SEPARATION", "GOV-SECURITY-INDEPENDENCE", "GOV-EXACT-INTEGRATION", "GOV-GATE-RECORDS", "GOV-STALE-EVIDENCE", "GOV-HIGH-RISK-STAGING", "GOV-OWNER-PROTECTION", "GOV-RELEASE-AUTHORITY", "secret_protection", "blocking_major_recheck"] ,
-  "severity": {
-    "BLOCKING": {"blocks": true, "requires_independent_recheck": true},
-    "MAJOR": {"blocks": true, "requires_independent_recheck": true},
-    "MINOR": {"blocks": false, "requires_debt_owner_and_target": true},
-    "SUGGESTION": {"blocks": false, "requires_disposition": true}
+  "current_gate_records": {
+    "protocol": "Bootstrap Governance v0 Gate Record",
+    "required_types": ["Independent Code Review", "QA", "Security Review", "Release"],
+    "candidate_specific": true,
+    "immutable_git_object": true,
+    "commit_parent_is_candidate": true,
+    "canonical_ref_prefix": "refs/governance/bootstrap-gates/",
+    "pr_visible_exact_copy_required": true,
+    "publisher_agent_id_must_equal_agent_id": true,
+    "disposition_must_be_pass": true,
+    "blocking_major_forbid_pass": true,
+    "explicit_release_selection": true,
+    "historical_records_are_not_current_evidence": true
   },
-  "evidence": {
-    "formal_gate_types": ["Independent Code Review", "QA", "Security Review", "Release"],
-    "publisher_must_be_performing_agent": true,
-    "pr_body_is_authoritative": false,
-    "candidate_identity_fields": ["base_sha", "candidate_sha", "candidate_tree"],
-    "required_gate_record_fields": ["schema_version", "gate_record_id", "gate_type", "agent_role", "agent_id", "pr_number", "base_sha", "candidate_sha", "candidate_tree", "timestamp", "scope", "checks", "findings", "repair_claims", "rechecks", "disposition", "repository_state_changed", "supersedes"],
-    "required_finding_fields": ["finding_id", "severity", "summary", "status"],
-    "required_repair_claim_fields": ["source_gate_record_id", "source_finding_id", "repaired_candidate_sha", "summary"],
-    "required_recheck_fields": ["source_gate_record_id", "source_finding_id", "repair_gate_record_id", "rechecked_candidate_sha", "outcome"],
-    "finding_severities": ["BLOCKING", "MAJOR", "MINOR", "SUGGESTION"],
-    "finding_statuses": ["OPEN"],
-    "append_only_graph": {"backward_edges_only": true, "predecessor_never_mutated": true, "acyclic": true, "no_forks": true, "same_gate_type_for_supersession": true, "same_pr": true, "ordered_timestamp": true, "missing_predecessor_fails": true},
-    "finding_lifecycle": {"repair_claim_does_not_close": true, "closure_requires_distinct_rechecker": true, "closure_requires_exact_source_finding": true, "closure_requires_repaired_candidate": true, "failed_recheck_remains_open": true, "wrong_role_cannot_recheck": true},
-    "content_addressing": {"required": true, "storage": "immutable_git_commit", "canonical_ref_prefix": "refs/governance/gate-records/", "comment_must_match_stored_json": true, "commit_parent_is_candidate": true},
-    "live_reconciliation": {"github_pr_comments_required": true, "complete_remote_ref_discovery": true, "origin_queried_at_validation_time": true, "local_ref_subset_not_authoritative": true, "source_disagreement_fails": true, "missing_history_fails": true, "migration_namespace_discovered": true},
-    "legacy_migration": {
-      "append_only": true,
-      "provenance_only": true,
-      "never_approval": true,
-      "legacy_comment_remains_required": true,
-      "exact_snapshot_and_hash_required": true,
-      "mixed_schema_normalization_required": true,
-      "backward_successor_lineage_preserved": true,
-      "supersession_does_not_close_findings": true,
-      "unsupported_schema_fails": true,
-      "modern_downgrade_forbidden": true,
-      "canonical_ref_prefix": "refs/governance/evidence-migrations/",
-      "protocol_cutoff": "2026-08-20T17:30:00Z",
-      "eligible_records": {
-        "GATE-REVIEW-05-20260820": {"comment_id": 5359092776, "schema_versions": [1]}
-      }
-    }
+  "freshness": {"exact_pr_base_candidate_tree": true, "candidate_change_invalidates": true, "repair_requires_new_candidate": true, "fresh_independent_pass_after_repair": true},
+  "ci": {"fail_closed": true, "governance_validation_required": true, "bootstrap_tests_required": true, "gitleaks_required": true, "candidate_identity_required": true, "current_candidate_success_required": true},
+  "authorization": {
+    "release_only": true,
+    "immutable_git_object": true,
+    "canonical_ref_prefix": "refs/governance/authorizations/",
+    "binds_exact_pr_base_candidate_tree": true,
+    "binds_exact_current_gate_commits": true,
+    "binds_current_ci": true,
+    "commit_parent_is_candidate": true
   },
-  "stale_evidence": {
-    "candidate_change_invalidates": true,
-    "repair_creates_new_candidate": true,
-    "unaffected_requires_independent_gate_owner_record": true
-  },
-  "integration": {
-    "merge_commit_only": true,
-    "parent_count": 2,
-    "exact_first_parent_is_authorized_base": true,
-    "exact_second_parent_is_authorized_candidate": true,
-    "candidate_tree_equals_authorized_tree": true,
-    "integration_tree_equals_authorized_tree": true,
-    "authorization_source": "immutable_git_authorization_commit",
-    "authorization_ref_prefix": "refs/governance/authorizations/",
-    "integration_trailer": "Governance-Authorization",
-    "pr_trailer": "Governance-PR",
-    "authorization_required_fields": ["schema_version", "authorization_id", "pr_number", "base_sha", "candidate_sha", "candidate_tree", "timestamp", "release_agent_id", "release_gate_record_id", "gate_record_commits"],
-    "canonical_ref_must_equal_authorization": true,
-    "authorization_commit_parent_is_candidate": true,
-    "release_identity_fields": ["base_sha", "candidate_sha", "candidate_tree", "authorization_commit_sha", "canonical_authorization_ref", "integration_sha", "integration_tree"]
-  },
-  "high_risk_staging": {
-    "required": true,
-    "non_local": true,
-    "isolated": true,
-    "local_substitute_allowed": false,
-    "categories": ["authentication", "authorization", "billing", "personal_data", "persisted_data_migration", "infrastructure", "deployment_security_boundary", "security_sensitive_behavior"]
-  },
-  "owner_boundaries": {
-    "owner_does_not": ["edit_code", "run_commands", "perform_git_operations", "resolve_conflicts", "inspect_logs", "interpret_logs", "debug", "maintain_code"],
-    "ask_only_for": ["product_behavior", "ux", "branding", "business", "spending", "privacy", "legal_compliance", "irreversible_external_action"],
-    "routine_technical_autonomy": "agents"
-  },
-  "exceptions": {
-    "lead_alone_may_approve": false,
-    "non_waivable_controls_may_be_excepted": false
-  },
-  "release": {
-    "release_role_issues_authorization": true,
-    "authorization_is_candidate_specific": true,
-    "authorization_requires_current_gate_records": true,
-    "merge_and_deploy_authorizations_are_separate": true,
-    "required_gate_record_types": ["Independent Code Review", "QA", "Security Review"]
-  },
-  "finding_policy": {
-    "approval_blocking_severities": ["BLOCKING", "MAJOR"],
-    "repair_required_severities": ["BLOCKING", "MAJOR"],
-    "independent_recheck_required_severities": ["BLOCKING", "MAJOR"],
-    "minor_requires_debt_owner_and_target": true,
-    "suggestion_requires_disposition": true
-  }
+  "integration": {"merge_commit_only": true, "parent_count": 2, "first_parent_is_authorized_base": true, "second_parent_is_authorized_candidate": true, "tree_equals_authorized_candidate_tree": true, "authorization_identity_exact": true},
+  "future_product_controls": {"security_triggers_defined": true, "accessibility_browser_gate_defined": true, "high_risk_non_local_staging_defined": true, "rollback_monitoring_defined": true, "incident_response_defined": true},
+  "owner_protection": {"owner_never_codes_or_debugs": true, "owner_never_operates_git": true, "owner_never_interprets_ci_logs": true, "routine_technical_decisions_are_agents": true},
+  "github_free_limits": {"agent_identity_not_cryptographically_proven": true, "distinct_processes_not_hard_enforced": true, "direct_pushes_not_fully_blocked": true, "private_repo_controls_not_overstated": true},
+  "historical_evidence": {"preserved_unchanged": true, "audit_only_for_superseded_candidates": true, "not_release_prerequisite": true, "no_cross_version_normalization": true},
+  "factory_v1": {"repository": "agent-software-factory", "deferred": true, "starts_with_uniform_protocol_from_genesis": true}
 }

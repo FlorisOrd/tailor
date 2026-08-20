@@ -17,7 +17,7 @@ The following files are configured on `bootstrap/agent-company`. They become the
 
 The Lead and Release roles procedurally enforce feature-branch work, exact-candidate identity, merge-commit-only integration, independent roles, evidence freshness, representative non-local high-risk staging, and separate merge/deploy authorizations. The GitHub PR and commit history provide the durable audit trail. Distinct Codex-agent roles may use one GitHub account, so GitHub identity alone cannot prove agent independence; the PR record must identify the separate threads/agents and their dispositions.
 
-Gate evidence is append-only: successors point backward, while finding repair claims and independent rechecks are distinct. Release queries live PR comments and `origin`'s complete PR namespace rather than trusting local refs. GitHub Free cannot prove process authorship, textual-agent physical identity, separate credentials, or non-deletion by a privileged writer before observation. It can strongly verify observed Git identities, content, deterministic refs, graph continuity, and current source agreement.
+Bootstrap v0 validates explicitly selected current candidate-specific Gate Records, their immutable objects/canonical refs, and gate-agent-published PR copies. Repairs create a new candidate and require fresh gates. GitHub Free cannot prove process authorship, textual-agent physical identity, separate credentials, or non-deletion by a privileged writer before observation.
 
 ## Not Currently Hard-Enforced
 
@@ -41,4 +41,4 @@ GitHub settings cannot by themselves guarantee that separate Codex threads perfo
 
 Any change to the account plan or repository capabilities requires the Lead to reassess this file and record the resulting enforcement decision in `DECISIONS.md`.
 
-Pre-protocol evidence is supported only through canonical-policy allowlisting and immutable provenance bindings in a separate migration ref namespace. Bindings never count as approval and do not strengthen historical guarantees retroactively.
+Historical REVIEW-05 through REVIEW-08 evidence remains preserved but cannot satisfy a fresh Bootstrap v0 gate.

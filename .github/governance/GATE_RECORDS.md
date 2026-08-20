@@ -1,43 +1,31 @@
-# Append-Only Gate Record Protocol
+# Bootstrap Governance v0 Gate Records
 
-Each performing agent stores its schema-version-2 JSON in `.github/governance/gate-record.json` in an immutable commit whose sole parent is the candidate. It publishes that commit at exactly `refs/governance/gate-records/pr-<pr>/<candidate>/<gate-record-id>` and posts the same JSON itself as a top-level PR comment:
+Bootstrap v0 uses one current, candidate-specific protocol. Review, QA, Security Review, and Release each publish their own `Bootstrap Governance v0 Gate Record` for the exact PR, base SHA, candidate SHA, and candidate tree.
+
+The gate agent stores the JSON at `.github/governance/gate-record.json` in an immutable commit whose only parent is the candidate. Publish it at:
+
+`refs/governance/bootstrap-gates/pr-<pr>/<candidate>/<gate-type>/<gate-record-id>`
+
+The same agent adds an exact PR-visible declaration:
 
 ~~~markdown
-Gate-Record-Commit: <40-character commit SHA>
+Bootstrap-Gate-Commit: <object SHA>
 
-```gate-record
-{ "schema_version": 2, "gate_record_id": "GATE-...", "...": "..." }
+```bootstrap-gate
+{ "record_type": "Bootstrap Governance v0 Gate Record", "...": "..." }
 ```
 ~~~
 
-Historical records never change. A later record may point backward through `supersedes`; predecessors have no forward pointer. The graph must be complete, acyclic, unforked, ordered, and role/PR compatible.
+Lead transcription is not gate evidence. Recorded publisher and gate-agent identities must match. GitHub Free cannot prove that textual identities represent physically separate Codex processes; thread separation remains a mandatory procedural control.
 
-## Finding Lifecycle
+## Current Findings and Freshness
 
-A finding is permanently recorded as `OPEN`. Closure is derived, never written back:
+A PASS record cannot contain a BLOCKING or MAJOR finding. A serious finding produces FAIL. Repair creates a new candidate, making earlier candidate-specific evidence stale. A fresh independent gate agent reviews or tests the complete new candidate and publishes a fresh record. Bootstrap v0 does not compute approval through a historical repair graph.
 
-1. An `Implementation Repair` record adds a `repair_claims` edge naming the source Gate Record, finding ID, and repaired candidate. This does not close the finding.
-2. A later qualified record of the original gate type adds a `rechecks` edge naming the source finding, repair record, candidate, and `PASS` or `FAIL`.
-3. Only `PASS` by a recorded agent ID distinct from both originator and implementer closes the finding. Wrong role, wrong candidate, wrong ID, same agent, missing evidence, or failed recheck leaves it blocking.
+## Release Selection
 
-## Release Reconciliation
+Release explicitly selects exactly one current PASS record for each required gate: Independent Code Review, QA, Security Review, and Release. Validation checks exact identity, immutable object, canonical ref, PR-visible copy, disposition, findings, and recorded role separation. Historical records cannot satisfy a current gate.
 
-Release validation independently:
+Before merge, Release runs `scripts/verify_integration.py authorization --authorization <sha> --reconcile-live`. This verifies the selected current gate evidence and exact successful CI run. The integration mode repeats these checks after merge and additionally verifies exact parents and tree.
 
-- queries current GitHub PR comments and parses declarations;
-- runs `git ls-remote` against `origin` for the complete PR Gate Record namespace;
-- fetches every discovered authoritative object;
-- compares PR JSON, declared object SHA, remote ref, stored JSON, candidate parent, and graph;
-- rejects omissions, additions, duplicates, mutations, forks, truncation, and source disagreement.
-
-Release embeds the exact active Review, QA, and Security record commit SHAs in its authorization. The integration commit carries `Governance-PR` and `Governance-Authorization` trailers.
-
-No separate manifest is used: without an externally protected anchor, a privileged writer who can delete refs could also delete or repoint a manifest head. Live GitHub-comment plus complete remote-ref reconciliation provides equivalent observable integrity without claiming protection that GitHub Free does not supply.
-
-## Legacy Evidence Binding
-
-Pre-protocol evidence is never rewritten or presented as modern. An explicitly allowlisted historical comment may instead be bound by a provenance-only `Legacy Evidence Binding`. The immutable binding stores the exact legacy JSON, its canonical SHA-256, the raw comment SHA-256, comment and historical candidate identities, and migration observation identity. It is published at `refs/governance/evidence-migrations/pr-<pr>/<legacy-record-id>/<canonical-json-hash>` and is neither a Gate Record nor an approval.
-
-Release enumerates both remote evidence namespaces and re-fetches the live legacy comment. Missing or changed comments, snapshots, hashes, objects, refs, or identities fail closed. Only canonical-policy entries created before the protocol cutoff are eligible, so modern evidence cannot downgrade into legacy mode.
-
-Supported v1 and v2 records are normalized once before graph evaluation. A v1 successor's backward `supersedes` edge participates in gate lineage, but supersession never closes findings. A binding proves the content observed at migration time, not that it was immutable before observation.
+REVIEW-05 through REVIEW-08 and their objects, refs, migration binding, and publication audit remain unchanged historical evidence for superseded candidates. They guide regression testing and review, but Release does not normalize or reconcile their formats.

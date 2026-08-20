@@ -6,7 +6,7 @@ Critical controls are defined by `.github/governance/policy.json`; prose cannot 
 
 A claim is not verification. Evidence must identify the recorded base SHA, exact candidate SHA and tree hash, command or procedure, result, environment, and relevant artifact or observation. After integration it must also identify the main integration SHA/tree, parent/base verification, and candidate/integration tree equality. Store the durable summary in the GitHub PR using `.github/PULL_REQUEST_TEMPLATE.md`; chat may assist but is not the record.
 
-Every repair creates a new candidate. The implementer publishes an append-only repair claim; it never closes a finding. A distinct qualified agent publishes the recheck. Formal proof is matching live PR JSON and an immutable Gate Record object; Release validates both plus the complete remote ledger using `scripts/validate_evidence.py`. Stale, missing, selected-subset, or disagreeing evidence fails.
+Every serious repair creates a new candidate. Earlier gate evidence becomes stale, and a fresh qualified independent agent verifies the complete new candidate. Release validates the explicitly selected current immutable Gate Records and their gate-agent-published PR copies using `scripts/validate_evidence.py`.
 
 ## Automated Quality Baseline
 
@@ -21,7 +21,7 @@ Before the first material product implementation can be complete, the project mu
 - secret scanning;
 - dependency/software-composition and vulnerability scanning.
 
-Add the commands to this file and `README.md` when the product toolchain is chosen. Do not create fake commands or empty tests. A genuinely inapplicable gate requires a written N/A rationale and approval by a non-implementing role in the PR record. The initial workflow, `.github/workflows/governance.yml`, validates repository governance, runs secret scanning, and runs deterministic factory self-tests under `tests/`; it does not claim to test a product that does not exist. Factory tests cover structured-policy mutations, Gate Record integrity/supersession/staleness, and exact-ref authorized integration positive and negative cases.
+Add the commands to this file and `README.md` when the product toolchain is chosen. Do not create fake commands or empty tests. A genuinely inapplicable gate requires a written N/A rationale and approval by a non-implementing role in the PR record. The initial workflow validates repository governance, runs secret scanning, and runs focused Bootstrap v0 regression tests; it does not claim to test a product that does not exist.
 
 Factory learning rule: every technically testable defect found by Review, QA, Security, or Release normally receives a permanent security-property regression test before repair is complete.
 
@@ -56,4 +56,4 @@ Tests must be deterministic, isolated, readable, and focused on observable behav
 
 Use the shared BLOCKING / MAJOR / MINOR / SUGGESTION taxonomy in `WORKFLOW.md`. BLOCKING and MAJOR findings require repair and independent recheck. MINOR findings require repair or tracked debt with owner and target date. Formal-review SUGGESTION dispositions are recorded.
 
-For allowlisted legacy evidence, validation enumerates the remote migration namespace and reconciles the live historical comment, immutable snapshot, hashes, and normalized mixed-version graph. Ledger integrity and release-gate satisfaction are separate results.
+Historical gate comments remain audit evidence but are not parsed as current-candidate authorization inputs.

@@ -42,9 +42,7 @@ Use the shared taxonomy in `WORKFLOW.md`. Confirmed secret exposure, active comp
 
 Automated scans supplement rather than replace threat analysis. False positives require documented evidence and Security Review disposition; they are not silently ignored.
 
-Evidence integrity is a trust boundary. Release independently retrieves live PR comments and the complete canonical remote Gate Record namespace. Local cached refs, PR summaries, or a selected record subset are not authoritative. Source disagreement, missing history, unresolved serious findings, or a recheck by the originating/implementing recorded agent blocks release. GitHub Free cannot cryptographically prove process identity or historical non-deletion before observation.
-
-A legacy binding proves only the historical comment content observed and bound at migration time. It does not retroactively prove immutability before observation. Missing or changed legacy comments, bindings, objects, or refs fail closed.
+Evidence integrity is a trust boundary. Release verifies explicitly selected current candidate-specific immutable Gate Records, canonical refs, and gate-agent-published PR copies. Stale identity, missing evidence, current serious findings, or prohibited recorded identity overlap blocks integration. Historical records remain audit context. GitHub Free cannot cryptographically prove process identity, physical thread separation, or historical non-deletion before observation.
 
 ## Private Reporting
 

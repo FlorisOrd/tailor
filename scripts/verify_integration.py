@@ -1,115 +1,84 @@
-"""Verify exact governed candidate and authorized integration identities."""
+"""Verify Bootstrap v0 candidate identity, authorization, selected gates, and integration."""
 from __future__ import annotations
-import argparse, json, os, re, subprocess, sys
+import argparse,json,os,re,subprocess,sys
 from datetime import datetime
-from validate_gate_records import RECORD_PATH as GATE_RECORD_PATH, validate_set as validate_gate_record_set
-from validate_evidence import validate_live
+from validate_evidence import validate_ci_run,validate_selected_live
+from validate_gate_records import GATES,RECORD_PATH,validate_current_set
 
-SHA = re.compile(r"^[0-9a-f]{40}$")
-TRAILER = "Governance-Authorization"
-PR_TRAILER = "Governance-PR"
-AUTH_PATH = ".github/governance/authorization.json"
-
-def git(*args: str) -> str:
-    result = subprocess.run(("git", *args), capture_output=True, text=True, check=False)
-    if result.returncode: raise ValueError(result.stderr.strip() or result.stdout.strip())
+SHA=re.compile(r"^[0-9a-f]{40}$");AUTH_PATH=".github/governance/authorization.json";AUTH_TRAILER="Governance-Authorization";PR_TRAILER="Governance-PR"
+AUTH_FIELDS={"schema_version","record_type","authorization_id","pr_number","base_sha","candidate_sha","candidate_tree","timestamp","implementation_agent_id","lead_agent_id","release_agent_id","ci_run_id","ci_candidate_sha","gate_record_commits"}
+def git(*args):
+    result=subprocess.run(("git",*args),capture_output=True,text=True,check=False)
+    if result.returncode:raise ValueError(result.stderr.strip() or result.stdout.strip())
     return result.stdout.strip()
-
-def require_sha(value: str, label: str, object_type: str = "commit") -> None:
-    if not SHA.fullmatch(value): raise ValueError(f"{label} must be a lowercase full 40-character Git SHA")
-    if git("cat-file", "-t", value) != object_type: raise ValueError(f"{label} does not identify a {object_type}: {value}")
-
-def tree(commit: str) -> str: return git("rev-parse", f"{commit}^{{tree}}")
-
-def verify_candidate(base: str, candidate: str) -> None:
-    require_sha(base, "base"); require_sha(candidate, "candidate")
-    if subprocess.run(("git", "merge-base", "--is-ancestor", base, candidate), check=False).returncode:
-        raise ValueError("recorded base is not an ancestor of candidate")
-    behind, ahead = git("rev-list", "--left-right", "--count", f"{base}...{candidate}").split()
-    if behind != "0": raise ValueError(f"candidate is behind recorded base by {behind} commit(s)")
+def require_commit(value,label):
+    if not isinstance(value,str) or not SHA.fullmatch(value) or git("cat-file","-t",value)!="commit":raise ValueError(f"{label} is not a full commit SHA")
+def tree(commit):return git("rev-parse",f"{commit}^{{tree}}")
+def verify_candidate(base,candidate):
+    require_commit(base,"base");require_commit(candidate,"candidate")
+    if subprocess.run(("git","merge-base","--is-ancestor",base,candidate),check=False).returncode:raise ValueError("base is not an ancestor of candidate")
+    behind,ahead=git("rev-list","--left-right","--count",f"{base}...{candidate}").split()
+    if behind!="0":raise ValueError("candidate is behind recorded base")
     print(f"base_sha={base}\ncandidate_sha={candidate}\ncandidate_tree={tree(candidate)}\ncandidate_commits_ahead={ahead}")
-
-def trailer_value(integration: str, key: str) -> str:
-    values = git("show", "-s", f"--format=%(trailers:key={key},valueonly)", integration).splitlines()
-    if len(values) != 1 or not values[0].strip(): raise ValueError(f"integration must contain exactly one {TRAILER} trailer")
+def trailer(commit,key):
+    values=git("show","-s",f"--format=%(trailers:key={key},valueonly)",commit).splitlines()
+    if len(values)!=1 or not values[0].strip():raise ValueError(f"integration must contain exactly one {key} trailer")
     return values[0].strip()
-
-def canonical_authorization_refs(pr_number: int, candidate: str) -> tuple[str, str]:
-    suffix = f"pr-{pr_number}/{candidate}"
-    return f"refs/governance/authorizations/{suffix}", f"refs/remotes/origin/governance-authorizations/{suffix}"
-
-def require_exact_authorization_ref(authorization: str, pr_number: int, candidate: str) -> str:
-    found = []
-    for ref in canonical_authorization_refs(pr_number, candidate):
-        result = subprocess.run(("git", "show-ref", "--verify", "--hash", ref), capture_output=True, text=True, check=False)
-        if result.returncode == 0: found.append((ref, result.stdout.strip()))
-    if not found: raise ValueError("exact canonical authorization ref is missing")
-    for ref, value in found:
-        if value != authorization: raise ValueError(f"canonical authorization ref was moved or points elsewhere: {ref}")
-    return found[0][0]
-
-def load_authorization(authorization: str) -> dict[str, object]:
-    require_sha(authorization, "authorization")
-    try: record = json.loads(git("show", f"{authorization}:{AUTH_PATH}"))
-    except json.JSONDecodeError as error: raise ValueError(f"authorization record is not valid JSON: {error}") from error
-    required = {"schema_version", "authorization_id", "pr_number", "base_sha", "candidate_sha", "candidate_tree", "timestamp", "release_agent_id", "release_gate_record_id", "gate_record_commits"}
-    if set(record) != required or record.get("schema_version") != 1: raise ValueError("authorization record fields/schema are invalid")
-    for field in ("base_sha", "candidate_sha", "candidate_tree"):
-        if not isinstance(record[field], str) or not SHA.fullmatch(record[field]): raise ValueError(f"authorization {field} is not a full lowercase SHA")
-    if not isinstance(record["pr_number"], int) or record["pr_number"] < 1: raise ValueError("authorization pr_number must be positive")
-    for field in ("authorization_id", "release_agent_id", "release_gate_record_id"):
-        if not isinstance(record[field], str) or not record[field].strip(): raise ValueError(f"authorization {field} must be non-empty")
-    expected_gates = {"Independent Code Review", "QA", "Security Review"}
-    if not isinstance(record["gate_record_commits"], dict) or set(record["gate_record_commits"]) != expected_gates: raise ValueError("authorization gate_record_commits are invalid")
-    for value in record["gate_record_commits"].values():
-        if not isinstance(value, str) or not SHA.fullmatch(value): raise ValueError("authorization Gate Record commit must be a full lowercase SHA")
-    try: datetime.fromisoformat(str(record["timestamp"]).replace("Z", "+00:00"))
-    except ValueError as error: raise ValueError("authorization timestamp must be ISO-8601") from error
-    return record
-
-def verify_integration(integration: str, authorization_arg: str | None = None, reconcile_live: bool = False) -> None:
-    require_sha(integration, "integration")
-    authorization = trailer_value(integration, TRAILER)
-    try: integration_pr = int(trailer_value(integration, PR_TRAILER))
-    except ValueError as error: raise ValueError("Governance-PR trailer must be a positive integer") from error
-    if integration_pr < 1: raise ValueError("Governance-PR trailer must be a positive integer")
-    if authorization_arg is not None and authorization_arg != authorization: raise ValueError("supplied authorization does not equal the integration trailer")
-    record = load_authorization(authorization)
-    expected_base, expected_candidate, expected_tree = str(record["base_sha"]), str(record["candidate_sha"]), str(record["candidate_tree"])
-    require_sha(expected_base, "authorized base"); require_sha(expected_candidate, "authorized candidate")
-    if record["pr_number"] != integration_pr: raise ValueError("authorization PR does not equal the exact integration PR trailer")
-    canonical_ref = require_exact_authorization_ref(authorization, integration_pr, expected_candidate)
+def auth_ref(pr,candidate):return f"refs/governance/authorizations/pr-{pr}/{candidate}"
+def load_authorization(commit):
+    require_commit(commit,"authorization")
+    try:a=json.loads(git("show",f"{commit}:{AUTH_PATH}"))
+    except json.JSONDecodeError as error:raise ValueError("authorization JSON is invalid") from error
+    if set(a)!=AUTH_FIELDS or a.get("schema_version")!=1 or a.get("record_type")!="Bootstrap Governance v0 Merge Authorization":raise ValueError("authorization fields/protocol are invalid")
+    for field in ("base_sha","candidate_sha","candidate_tree","ci_candidate_sha"):
+        if not isinstance(a.get(field),str) or not SHA.fullmatch(a[field]):raise ValueError(f"invalid authorization {field}")
+    if a["ci_candidate_sha"]!=a["candidate_sha"]:raise ValueError("CI evidence is stale")
+    if not isinstance(a.get("ci_run_id"),int) or a["ci_run_id"]<1:raise ValueError("CI run ID is invalid")
+    if not isinstance(a.get("gate_record_commits"),dict) or set(a["gate_record_commits"])!=GATES:raise ValueError("authorization does not select all current gates")
+    if not all(isinstance(x,str) and SHA.fullmatch(x) for x in a["gate_record_commits"].values()):raise ValueError("selected Gate Record commit is invalid")
+    if any(not isinstance(a.get(x),str) or not a[x].strip() for x in ("authorization_id","implementation_agent_id","lead_agent_id","release_agent_id")):raise ValueError("authorization identities are incomplete")
+    try:
+        if datetime.fromisoformat(str(a["timestamp"]).replace("Z","+00:00")).tzinfo is None:raise ValueError
+    except ValueError as error:raise ValueError("authorization timestamp is invalid") from error
+    return a
+def verify_authorization(authorization,reconcile_live=False):
+    a=load_authorization(authorization)
+    pr=a["pr_number"]
+    ref=auth_ref(pr,a["candidate_sha"]);result=subprocess.run(("git","show-ref","--verify","--hash",ref),capture_output=True,text=True,check=False)
+    if result.returncode or result.stdout.strip()!=authorization:raise ValueError("exact authorization ref is missing or moved")
+    if git("show","-s","--format=%P",authorization).split()!=[a["candidate_sha"]]:raise ValueError("authorization parent is not candidate")
+    records=[];records_by_type={}
+    for gate,commit in a["gate_record_commits"].items():
+        require_commit(commit,f"{gate} Gate Record")
+        try:record=json.loads(git("show",f"{commit}:{RECORD_PATH}"))
+        except json.JSONDecodeError as error:raise ValueError(f"invalid {gate} Gate Record JSON") from error
+        records.append(record);records_by_type[gate]=record
+    problems=validate_current_set(records,a["gate_record_commits"],a["base_sha"],a["candidate_sha"],a["candidate_tree"],pr,a["implementation_agent_id"],a["lead_agent_id"])
+    if records_by_type.get("Release",{}).get("agent_id")!=a["release_agent_id"]:problems.append("Release Gate identity differs from authorization")
     if reconcile_live:
-        token=os.environ.get("GITHUB_TOKEN"); repo=os.environ.get("GITHUB_REPOSITORY")
-        if not token or not repo: raise ValueError("live evidence reconciliation requires GITHUB_TOKEN and GITHUB_REPOSITORY")
-        live_problems=validate_live(repo,integration_pr,token,"origin",expected_base,expected_candidate,expected_tree,set(record["gate_record_commits"]))
-        if live_problems: raise ValueError("live PR/remote evidence reconciliation failed: "+"; ".join(live_problems))
-    gate_records=[];gate_commits={}
-    for expected_gate,authorized_commit in record["gate_record_commits"].items():
-        require_sha(authorized_commit,f"{expected_gate} Gate Record commit")
-        try:gate_record=json.loads(git("show",f"{authorized_commit}:{GATE_RECORD_PATH}"))
-        except json.JSONDecodeError as error:raise ValueError(f"invalid authorized {expected_gate} Gate Record JSON") from error
-        if gate_record.get("gate_type")!=expected_gate:raise ValueError(f"authorization Gate Record type mismatch: {expected_gate}")
-        gate_records.append(gate_record);gate_commits[gate_record.get("gate_record_id","")]=authorized_commit
-    gate_problems=validate_gate_record_set(gate_records,expected_base,expected_candidate,expected_tree,integration_pr,set(record["gate_record_commits"]),gate_commits)
-    if gate_problems: raise ValueError("authorized Gate Records are invalid: "+"; ".join(gate_problems))
-    authorization_parents = git("show", "-s", "--format=%P", authorization).split()
-    if authorization_parents != [expected_candidate]: raise ValueError("authorization commit must have the exact authorized candidate as its only parent")
-    parents = git("show", "-s", "--format=%P", integration).split()
-    if len(parents) != 2: raise ValueError(f"integration must have exactly two parents; found {len(parents)}")
-    if parents[0] != expected_base: raise ValueError(f"first parent is not the exact authorized base: {parents[0]} != {expected_base}")
-    if parents[1] != expected_candidate: raise ValueError(f"second parent is not the exact authorized candidate: {parents[1]} != {expected_candidate}")
-    if tree(expected_candidate) != expected_tree: raise ValueError(f"candidate tree is not the exact authorized tree: {tree(expected_candidate)} != {expected_tree}")
-    if tree(integration) != expected_tree: raise ValueError(f"integration tree is not the exact authorized tree: {tree(integration)} != {expected_tree}")
-    print(f"pr_number={integration_pr}\nauthorization_sha={authorization}\nauthorization_ref={canonical_ref}\nbase_sha={expected_base}\ncandidate_sha={expected_candidate}\ncandidate_tree={expected_tree}\nintegration_sha={integration}\nintegration_tree={tree(integration)}\nexact_authorized_tuple=verified")
-
-def main() -> int:
-    parser = argparse.ArgumentParser(); sub = parser.add_subparsers(dest="mode", required=True)
-    candidate = sub.add_parser("candidate"); candidate.add_argument("--base", required=True); candidate.add_argument("--candidate", required=True)
-    integration = sub.add_parser("integration"); integration.add_argument("--integration", required=True); integration.add_argument("--authorization"); integration.add_argument("--reconcile-live",action="store_true")
-    args = parser.parse_args()
-    try: verify_candidate(args.base, args.candidate) if args.mode == "candidate" else verify_integration(args.integration, args.authorization,args.reconcile_live)
-    except ValueError as error: print(f"Integration identity validation failed: {error}", file=sys.stderr); return 1
+        token=os.environ.get("GITHUB_TOKEN");repo=os.environ.get("GITHUB_REPOSITORY")
+        if not token or not repo:raise ValueError("live selected-evidence validation requires GitHub context")
+        problems.extend(validate_selected_live(repo,pr,token,records_by_type,a["gate_record_commits"]))
+        problems.extend(validate_ci_run(repo,token,a["ci_run_id"],a["candidate_sha"]))
+    if problems:raise ValueError("current gate evidence is invalid: "+"; ".join(problems))
+    if tree(a["candidate_sha"])!=a["candidate_tree"]:raise ValueError("authorized candidate tree is stale or wrong")
+    print(f"pr_number={pr}\nauthorization_sha={authorization}\nauthorization_ref={ref}\nbase_sha={a['base_sha']}\ncandidate_sha={a['candidate_sha']}\ncandidate_tree={a['candidate_tree']}\ncurrent_gate_evidence=verified")
+    return a,ref
+def verify_integration(integration,authorization_arg=None,reconcile_live=False):
+    require_commit(integration,"integration");authorization=trailer(integration,AUTH_TRAILER);pr=int(trailer(integration,PR_TRAILER))
+    if authorization_arg and authorization_arg!=authorization:raise ValueError("supplied authorization differs from integration trailer")
+    a,ref=verify_authorization(authorization,reconcile_live)
+    if a["pr_number"]!=pr:raise ValueError("authorization PR differs from integration PR")
+    parents=git("show","-s","--format=%P",integration).split()
+    if len(parents)!=2 or parents[0]!=a["base_sha"] or parents[1]!=a["candidate_sha"]:raise ValueError("integration parents are not exact authorized base/candidate")
+    if tree(a["candidate_sha"])!=a["candidate_tree"] or tree(integration)!=a["candidate_tree"]:raise ValueError("integration tree differs from authorized candidate tree")
+    print(f"pr_number={pr}\nauthorization_sha={authorization}\nauthorization_ref={ref}\nbase_sha={a['base_sha']}\ncandidate_sha={a['candidate_sha']}\ncandidate_tree={a['candidate_tree']}\nintegration_sha={integration}\nintegration_tree={tree(integration)}\nexact_authorized_tuple=verified")
+def main():
+    parser=argparse.ArgumentParser();sub=parser.add_subparsers(dest="mode",required=True);c=sub.add_parser("candidate");c.add_argument("--base",required=True);c.add_argument("--candidate",required=True);z=sub.add_parser("authorization");z.add_argument("--authorization",required=True);z.add_argument("--reconcile-live",action="store_true");i=sub.add_parser("integration");i.add_argument("--integration",required=True);i.add_argument("--authorization");i.add_argument("--reconcile-live",action="store_true");a=parser.parse_args()
+    try:
+        if a.mode=="candidate":verify_candidate(a.base,a.candidate)
+        elif a.mode=="authorization":verify_authorization(a.authorization,a.reconcile_live)
+        else:verify_integration(a.integration,a.authorization,a.reconcile_live)
+    except (ValueError,TypeError) as error:print(f"Integration identity validation failed: {error}",file=sys.stderr);return 1
     return 0
-
-if __name__ == "__main__": sys.exit(main())
+if __name__=="__main__":sys.exit(main())

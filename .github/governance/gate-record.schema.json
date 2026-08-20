@@ -1,16 +1,17 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/FlorisOrd/tailor/.github/governance/gate-record.schema.json",
-  "title": "Append-only Governance Gate Record",
+  "title": "Bootstrap Governance v0 Gate Record",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "gate_record_id", "gate_type", "agent_role", "agent_id", "pr_number", "base_sha", "candidate_sha", "candidate_tree", "timestamp", "scope", "checks", "findings", "repair_claims", "rechecks", "disposition", "repository_state_changed", "supersedes"],
+  "required": ["schema_version", "record_type", "gate_record_id", "gate_type", "agent_role", "agent_id", "publisher_agent_id", "pr_number", "base_sha", "candidate_sha", "candidate_tree", "timestamp", "scope", "checks", "findings", "disposition"],
   "properties": {
-    "schema_version": {"const": 2},
-    "gate_record_id": {"type": "string", "pattern": "^GATE-[A-Z0-9][A-Z0-9-]{2,63}$"},
-    "gate_type": {"enum": ["Implementation Repair", "Independent Code Review", "QA", "Security Review", "Release"]},
-    "agent_role": {"type": "string", "minLength": 1},
+    "schema_version": {"const": 1},
+    "record_type": {"const": "Bootstrap Governance v0 Gate Record"},
+    "gate_record_id": {"type": "string", "pattern": "^BOOTSTRAP-GATE-[A-Z0-9-]+$"},
+    "gate_type": {"enum": ["Independent Code Review", "QA", "Security Review", "Release"]},
+    "agent_role": {"enum": ["Independent Code Review", "QA", "Security Review", "Release"]},
     "agent_id": {"type": "string", "minLength": 1},
+    "publisher_agent_id": {"type": "string", "minLength": 1},
     "pr_number": {"type": "integer", "minimum": 1},
     "base_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
     "candidate_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
@@ -18,11 +19,7 @@
     "timestamp": {"type": "string", "format": "date-time"},
     "scope": {"type": "string", "minLength": 1},
     "checks": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
-    "findings": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["finding_id", "severity", "summary", "status"], "properties": {"finding_id": {"type": "string", "minLength": 1}, "severity": {"enum": ["BLOCKING", "MAJOR", "MINOR", "SUGGESTION"]}, "summary": {"type": "string", "minLength": 1}, "status": {"const": "OPEN"}}}},
-    "repair_claims": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["source_gate_record_id", "source_finding_id", "repaired_candidate_sha", "summary"], "properties": {"source_gate_record_id": {"type": "string"}, "source_finding_id": {"type": "string"}, "repaired_candidate_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"}, "summary": {"type": "string", "minLength": 1}}}},
-    "rechecks": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["source_gate_record_id", "source_finding_id", "repair_gate_record_id", "rechecked_candidate_sha", "outcome"], "properties": {"source_gate_record_id": {"type": "string"}, "source_finding_id": {"type": "string"}, "repair_gate_record_id": {"type": "string"}, "rechecked_candidate_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"}, "outcome": {"enum": ["PASS", "FAIL"]}}}},
-    "disposition": {"enum": ["PASS", "FAIL", "PENDING", "N/A"]},
-    "repository_state_changed": {"type": "boolean"},
-    "supersedes": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^GATE-[A-Z0-9][A-Z0-9-]{2,63}$"}}
+    "findings": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["finding_id", "severity", "summary"], "properties": {"finding_id": {"type": "string", "minLength": 1}, "severity": {"enum": ["BLOCKING", "MAJOR", "MINOR", "SUGGESTION"]}, "summary": {"type": "string", "minLength": 1}}}},
+    "disposition": {"enum": ["PASS", "FAIL"]}
   }
 }

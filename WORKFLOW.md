@@ -35,7 +35,9 @@ Independent Code Review, automated checks, QA/browser/accessibility checks, and 
 
 ### Durable Gate Records
 
-Every formal gate agent stores its exact JSON Gate Record in an immutable candidate-parent commit under the deterministic ref defined in `.github/governance/GATE_RECORDS.md`, then publishes a PR comment containing that object SHA and identical fenced JSON. Later records point backward; predecessors never change. Repair claims and independent rechecks are separate append-only edges. Release queries live PR comments and the complete remote namespace, then validates recursive schema, content equality, graph continuity, finding lifecycle, freshness, and recorded-agent separation. The PR body is only a summary.
+Every formal gate agent publishes its own candidate-specific Bootstrap v0 Gate Record using `.github/governance/GATE_RECORDS.md`. Release explicitly selects one current Review, QA, Security, and Release record and validates its exact PR/base/candidate/tree, immutable object/ref, PR-visible copy, PASS disposition, findings, freshness, and recorded-agent separation. Lead transcription and historical evidence cannot satisfy a current gate.
+
+A BLOCKING or MAJOR finding produces FAIL. Repair creates a new candidate and invalidates earlier candidate-specific evidence. The complete new candidate receives fresh independent verification; Bootstrap v0 does not derive approval from a historical finding graph.
 
 `main` changes require a PR or equivalent durable review record before becoming authoritative. The exact-candidate integration protocol below is procedural on the current GitHub plan; `.github/GOVERNANCE_ENFORCEMENT.md` records the lack of hard enforcement.
 
@@ -110,4 +112,4 @@ Release readiness is demonstrable, not a statement of intent. Where applicable, 
 
 Failed gates return work to the appropriate role. Agents resolve technical failures themselves and ask the owner only when a decision crosses `PRODUCT.md` boundaries. Incidents follow `INCIDENT_RESPONSE.md`.
 
-Pre-protocol evidence uses only the allowlisted, provenance-only legacy binding process in `.github/governance/GATE_RECORDS.md`. The historical comment remains required and unchanged. Migration cannot approve a gate, perform a recheck, or close a finding.
+REVIEW-05 through REVIEW-08 and their published objects/refs remain unchanged audit evidence for superseded candidates and regression-test context. They are not normalized or used as current Release prerequisites.

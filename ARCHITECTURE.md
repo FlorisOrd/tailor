@@ -25,6 +25,8 @@ Architecture translates approved requirements into technical boundaries and iden
 
 Architecture review is required for new runtimes or frameworks, persistence models, deployment topology, external services, trust boundaries, public APIs, cross-cutting migrations, and changes that are costly to reverse.
 
+Bootstrap Governance v0 is intentionally limited to this repository's frozen governance foundation. Reusable orchestration, project profiles, generalized evidence lifecycles, and version migration belong in the future `agent-software-factory` repository, which starts with a uniform protocol from genesis.
+
 ## Decision Records
 
 Record consequential decisions in `DECISIONS.md` before or alongside implementation. Each record includes context, decision, rationale, alternatives, consequences, status, date, and evidence or follow-up. Supersede earlier records rather than deleting history.
