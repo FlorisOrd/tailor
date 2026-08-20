@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "gate_record_id": "GATE-REVIEW-06-20260820",
+  "gate_type": "Independent Code Review",
+  "agent_role": "Independent Code Review",
+  "agent_id": "REVIEW-06 Factory Governance Verification",
+  "pr_number": 1,
+  "base_sha": "e030baa34f08a5b0cfd8e1c45d67f45be50f3753",
+  "candidate_sha": "0dca1fad3b26432a6747eab6a085cb5608e16eaf",
+  "candidate_tree": "508195346c288c89c4742cabecef631be9256530",
+  "timestamp": "2026-08-20T18:04:20Z",
+  "scope": "Independent adversarial code review of the exact REVIEW-05 repair diff and current governance implementation, including authorization identity, Gate Record schema/integrity/ledger/supersession, fail-closed policy controls, factory tests, workflows, and remote CI.",
+  "checks": [
+    "Verified PR #1 is open, draft, and unmerged; PR head, local branch head, and tracked remote branch equal 0dca1fad3b26432a6747eab6a085cb5608e16eaf; candidate tree equals 508195346c288c89c4742cabecef631be9256530; main equals e030baa34f08a5b0cfd8e1c45d67f45be50f3753; base is an ancestor; divergence is 0 behind and 6 ahead; worktree was clean before evidence publication.",
+    "Reviewed exact diff dce0abbc426db3e87b44082c0755e358ab1a80af..0dca1fad3b26432a6747eab6a085cb5608e16eaf and complete affected scripts, schemas, policy, workflow, documentation, and tests; no product code exists.",
+    "Ran bundled Python equivalent of python -m unittest discover -s tests -p test_*.py: 153 tests passed in 57.099 seconds.",
+    "Ran scripts/validate_governance.py, scripts/verify_integration.py candidate, and git diff --check: passed for the exact candidate.",
+    "Reproduced exact authorization-ref attacks and inspected integration negatives: wrong PR/candidate/arbitrary governed refs, moved/missing canonical ref, wrong PR/candidate/base/tree/parents/integration and ambiguous metadata fail; REVIEW-05-F1 is repaired and independently rechecked.",
+    "Inspected recursive Gate Record validation and supersession graph, and independently reproduced acceptance of a same-agent self-recheck; immutable predecessor records also cannot acquire the reciprocal superseded_by link required for later correction.",
+    "Inspected content-addressed validation and complete-ledger discovery; release-path discovery reads JSON only from Git refs and validate_record_object compares that record to the same stored JSON, so it does not retrieve or compare the actual PR-visible comment and selectively omitted refs are not detected.",
+    "Inspected fail-closed policy contracts and 105 mutation-generated policy tests covering critical evidence, roles, exceptions, release identity, staging, owner protection, and findings; REVIEW-05-F3 is repaired and independently rechecked.",
+    "Inspected GitHub Actions run 32397773938 for exact candidate 0dca1fad3b26432a6747eab6a085cb5608e16eaf: candidate identity, governance validation plus 153 factory tests, and Gitleaks succeeded; main-integration verification correctly skipped for the pull_request event; workflow contains no relevant continue-on-error or success fallback."
+  ],
+  "findings": [
+    {
+      "finding_id": "REVIEW-05-F1",
+      "severity": "MAJOR",
+      "summary": "Exact deterministic authorization-ref and identity enforcement is repaired; adversarial wrong-ref and wrong-identity cases fail.",
+      "status": "CLOSED",
+      "rechecked_by_gate_record_id": "GATE-REVIEW-06-20260820"
+    },
+    {
+      "finding_id": "REVIEW-05-F2",
+      "severity": "MAJOR",
+      "summary": "STILL OPEN: immutable Gate Records require reciprocal supersedes/superseded_by links, but an already-published immutable predecessor with superseded_by null cannot be corrected; the validator also accepts the same agent identity as the alleged independent rechecker. Repair by using forward-only immutable successor links with independently verified distinct rechecker identity, or another append-only linkage model, and add regression tests using an already-published predecessor.",
+      "status": "OPEN",
+      "rechecked_by_gate_record_id": null
+    },
+    {
+      "finding_id": "REVIEW-05-F3",
+      "severity": "MAJOR",
+      "summary": "Critical canonical policy structures now fail closed under the required evidence, role, exception, release identity, staging, owner-protection, and finding-policy mutations.",
+      "status": "CLOSED",
+      "rechecked_by_gate_record_id": "GATE-REVIEW-06-20260820"
+    },
+    {
+      "finding_id": "REVIEW-06-F1",
+      "severity": "MAJOR",
+      "summary": "scripts/verify_integration.py and scripts/validate_gate_records.py do not retrieve the PR-visible Gate Record representation. discover_record_objects loads stored JSON from refs, then validate_record_object compares that same stored JSON to itself. A valid-looking or mutated PR comment can therefore disagree with the authoritative commit without release validation detecting it. Fetch and parse the exact PR comment/export ledger, bind each comment to its declared Gate-Record-Commit, require one-to-one equality with every authoritative ref/object, and test the full release path rather than only the helper function.",
+      "status": "OPEN",
+      "rechecked_by_gate_record_id": null
+    },
+    {
+      "finding_id": "REVIEW-06-F2",
+      "severity": "MAJOR",
+      "summary": "Complete-ledger validation trusts whichever custom refs happen to exist locally and has no independently enumerated expected PR-visible evidence set. Omitting an historical Gate Record ref removes it from discovery, allowing unresolved serious history to disappear. Fetch/enumerate the complete canonical PR ref namespace and reconcile it bidirectionally against all PR-visible Gate Record declarations before authorization; add selective-omission tests.",
+      "status": "OPEN",
+      "rechecked_by_gate_record_id": null
+    }
+  ],
+  "disposition": "FAIL",
+  "repository_state_changed": true,
+  "supersedes": "GATE-REVIEW-05-20260820",
+  "superseded_by": null
+}
