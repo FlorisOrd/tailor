@@ -12,9 +12,7 @@ AUTH_PATH = ".github/governance/authorization.json"
 AUTH_TRAILER = "Governance-Authorization"
 PR_TRAILER = "Governance-PR"
 GOVERNED_REPOSITORY = "FlorisOrd/tailor"
-GOVERNED_PR = 1
 GOVERNED_BASE_BRANCH = "main"
-GOVERNED_HEAD_BRANCH = "bootstrap/agent-company"
 GOVERNED_WORKFLOW_NAME = "Governance Baseline"
 GOVERNED_WORKFLOW_PATH = ".github/workflows/governance.yml"
 
@@ -110,10 +108,17 @@ def ci_identity(run):
         "ci_conclusion": run.get("conclusion"),
     }
 
-def build_live_release_context(token, ci_run_id):
+def require_expected_identity(expected_pr_number, expected_head_branch):
+    if not isinstance(expected_pr_number, int) or expected_pr_number < 1:
+        raise ValueError("expected PR number is required")
+    if not isinstance(expected_head_branch, str) or not expected_head_branch.strip():
+        raise ValueError("expected head branch is required")
+
+def build_live_release_context(token, ci_run_id, expected_pr_number, expected_head_branch):
+    require_expected_identity(expected_pr_number, expected_head_branch)
     if not token: raise ValueError("live release context requires GitHub authentication")
     try:
-        pr = github_json(f"https://api.github.com/repos/{GOVERNED_REPOSITORY}/pulls/{GOVERNED_PR}", token)
+        pr = github_json(f"https://api.github.com/repos/{GOVERNED_REPOSITORY}/pulls/{expected_pr_number}", token)
         run = github_json(f"https://api.github.com/repos/{GOVERNED_REPOSITORY}/actions/runs/{ci_run_id}", token)
     except Exception as error:
         raise ValueError("required live GitHub release state is unavailable") from error
@@ -126,7 +131,7 @@ def build_live_release_context(token, ci_run_id):
             pr_number=pr["number"], pr_state=pr["state"], merged=pr["merged"],
             base_branch=base["ref"], base_sha=base_sha, head_branch=head["ref"], head_sha=head_sha,
             candidate_tree=tree(head_sha), remote_base_sha=remote_ref_sha(f"refs/heads/{GOVERNED_BASE_BRANCH}"),
-            remote_head_sha=remote_ref_sha(f"refs/heads/{GOVERNED_HEAD_BRANCH}"),
+            remote_head_sha=remote_ref_sha(f"refs/heads/{expected_head_branch}"),
             base_is_ancestor=is_ancestor(base_sha, head_sha), **ci_identity(run),
         )
     except (KeyError, TypeError, ValueError) as error:
@@ -134,14 +139,15 @@ def build_live_release_context(token, ci_run_id):
 
 def context_from_authorization(a): return LiveReleaseContext(**{context_field:a[auth_field] for auth_field, context_field in AUTH_CONTEXT_MAP.items()})
 
-def validate_release_context(context, authorization):
+def validate_release_context(context, authorization, expected_pr_number, expected_head_branch):
+    require_expected_identity(expected_pr_number, expected_head_branch)
     expected = {
         "repository": GOVERNED_REPOSITORY, "head_repository": GOVERNED_REPOSITORY,
-        "pr_number": GOVERNED_PR, "pr_state": "open", "merged": False,
-        "base_branch": GOVERNED_BASE_BRANCH, "head_branch": GOVERNED_HEAD_BRANCH,
+        "pr_number": expected_pr_number, "pr_state": "open", "merged": False,
+        "base_branch": GOVERNED_BASE_BRANCH, "head_branch": expected_head_branch,
         "base_is_ancestor": True, "ci_workflow_name": GOVERNED_WORKFLOW_NAME,
         "ci_workflow_path": GOVERNED_WORKFLOW_PATH, "ci_event": "pull_request",
-        "ci_pr_number": GOVERNED_PR, "ci_status": "completed", "ci_conclusion": "success",
+        "ci_pr_number": expected_pr_number, "ci_status": "completed", "ci_conclusion": "success",
     }
     actual, problems = asdict(context), []
     for field, value in expected.items():
@@ -186,14 +192,19 @@ def load_gate_records(a):
         records.append(record); by_type[gate] = record
     return records, by_type
 
-def verify_authorization(authorization, reconcile_live=False):
+def verify_authorization(authorization, reconcile_live=False, expected_pr_number=None, expected_head_branch=None):
     a = load_authorization(authorization)
     ref = auth_ref(a["pr_number"], a["candidate_sha"])
     result = subprocess.run(("git", "show-ref", "--verify", "--hash", ref), capture_output=True, text=True, check=False)
     if result.returncode or result.stdout.strip() != authorization: raise ValueError("exact authorization ref is missing or moved")
     if git("show", "-s", "--format=%P", authorization).split() != [a["candidate_sha"]]: raise ValueError("authorization parent is not candidate")
-    context = build_live_release_context(os.environ.get("GITHUB_TOKEN"), a["ci_run_id"]) if reconcile_live else context_from_authorization(a)
-    problems = validate_release_context(context, a)
+    if reconcile_live:
+        require_expected_identity(expected_pr_number, expected_head_branch)
+        context = build_live_release_context(os.environ.get("GITHUB_TOKEN"), a["ci_run_id"], expected_pr_number, expected_head_branch)
+    else:
+        context = context_from_authorization(a)
+        expected_pr_number, expected_head_branch = context.pr_number, context.head_branch
+    problems = validate_release_context(context, a, expected_pr_number, expected_head_branch)
     records, records_by_type = load_gate_records(a)
     problems.extend(validate_current_set(records, a["gate_record_commits"], context.base_sha, context.head_sha, context.candidate_tree, context.pr_number, a["implementation_agent_id"], a["lead_agent_id"]))
     if records_by_type.get("Release", {}).get("agent_id") != a["release_agent_id"]: problems.append("Release Gate identity differs from authorization")
@@ -225,12 +236,12 @@ def verify_integration(integration, authorization_arg=None, reconcile_live=False
 def main():
     parser = argparse.ArgumentParser(); sub = parser.add_subparsers(dest="mode", required=True)
     candidate = sub.add_parser("candidate"); candidate.add_argument("--base", required=True); candidate.add_argument("--candidate", required=True)
-    authorization = sub.add_parser("authorization"); authorization.add_argument("--authorization", required=True); authorization.add_argument("--reconcile-live", action="store_true", required=True)
+    authorization = sub.add_parser("authorization"); authorization.add_argument("--authorization", required=True); authorization.add_argument("--reconcile-live", action="store_true", required=True); authorization.add_argument("--pr-number", type=int, required=True); authorization.add_argument("--head-branch", required=True)
     integration = sub.add_parser("integration"); integration.add_argument("--integration", required=True); integration.add_argument("--authorization"); integration.add_argument("--reconcile-live", action="store_true")
     args = parser.parse_args()
     try:
         if args.mode == "candidate": verify_candidate(args.base, args.candidate)
-        elif args.mode == "authorization": verify_authorization(args.authorization, True)
+        elif args.mode == "authorization": verify_authorization(args.authorization, True, args.pr_number, args.head_branch)
         else: verify_integration(args.integration, args.authorization, args.reconcile_live)
     except (ValueError, TypeError) as error:
         print(f"Integration identity validation failed: {error}", file=sys.stderr); return 1

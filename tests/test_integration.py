@@ -1,10 +1,11 @@
-import json, os, subprocess, sys, tempfile, unittest
+import json, os, re, subprocess, sys, tempfile, unittest
 from dataclasses import asdict, replace
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
+AUTHORIZATION_SCHEMA = json.loads((ROOT / ".github/governance/authorization.schema.json").read_text())
 sys.path.insert(0, str(ROOT / "scripts"))
 from tests.test_gate_records import record
 from verify_integration import (
@@ -12,6 +13,23 @@ from verify_integration import (
     remote_ref_sha, validate_ci_against_context, validate_release_context, verify_authorization,
     verify_integration,
 )
+
+def schema_problems(value, schema, path="authorization"):
+    problems=[]
+    if "const" in schema and value != schema["const"]: problems.append(f"{path} differs from const")
+    kind=schema.get("type")
+    valid_type={"object":isinstance(value,dict),"string":isinstance(value,str),"integer":isinstance(value,int) and not isinstance(value,bool)}.get(kind,True)
+    if not valid_type:return problems+[f"{path} has wrong type"]
+    if kind=="object":
+        properties=schema.get("properties",{});required=schema.get("required",[])
+        problems.extend(f"{path}.{field} is missing" for field in required if field not in value)
+        if schema.get("additionalProperties") is False:problems.extend(f"{path}.{field} is unknown" for field in value if field not in properties)
+        for field in value.keys() & properties.keys():problems.extend(schema_problems(value[field],properties[field],f"{path}.{field}"))
+    if kind=="string":
+        if len(value)<schema.get("minLength",0):problems.append(f"{path} is too short")
+        if "pattern" in schema and re.fullmatch(schema["pattern"],value) is None:problems.append(f"{path} has invalid format")
+    if kind=="integer" and value<schema.get("minimum",value):problems.append(f"{path} is below minimum")
+    return problems
 
 class IntegrationTests(unittest.TestCase):
     def setUp(self):
@@ -67,11 +85,69 @@ class IntegrationTests(unittest.TestCase):
 
     def test_exact_authorization_passes_before_merge(self): verify_authorization(self.auth)
     def test_exact_integration_passes(self): verify_integration(self.integration)
-    def test_exact_live_context_passes(self): self.assertEqual([], validate_release_context(self.context, self.auth_payload))
+    def test_exact_live_context_passes(self): self.assertEqual([], validate_release_context(self.context, self.auth_payload, 1, "bootstrap/agent-company"))
+    def test_arbitrary_explicit_pr_and_head_identity_passes(self):
+        context = self.release_context(pr_number=17, head_branch="fix/corrective", ci_pr_number=17)
+        _, authorization = self.authorization(context)
+        self.assertEqual([], validate_release_context(context, authorization, 17, "fix/corrective"))
+
+    def test_pr_2_release_authorization_is_schema_valid_and_exact_context_valid(self):
+        context = self.release_context(pr_number=2, head_branch="fix/bootstrap-post-integration-ci-auth", ci_pr_number=2)
+        _, authorization = self.authorization(context)
+        self.assertEqual([], schema_problems(authorization, AUTHORIZATION_SCHEMA))
+        self.assertEqual([], validate_release_context(context, authorization, 2, "fix/bootstrap-post-integration-ci-auth"))
+
+    def test_arbitrary_future_authorization_is_schema_valid(self):
+        context = self.release_context(pr_number=314, head_branch="repair/future-314", ci_pr_number=314)
+        _, authorization = self.authorization(context)
+        self.assertEqual([], schema_problems(authorization, AUTHORIZATION_SCHEMA))
+
+    def test_authorization_schema_rejects_missing_zero_and_empty_dynamic_identity(self):
+        cases={
+            "zero_pr":{"pr_number":0},"zero_ci_pr":{"ci_pr_number":0},"empty_head":{"head_branch":""},
+            "missing_pr":{"pr_number":None},"missing_ci_pr":{"ci_pr_number":None},"missing_head":{"head_branch":None},
+        }
+        for name,change in cases.items():
+            authorization=dict(self.auth_payload);field,value=next(iter(change.items()))
+            if value is None:authorization.pop(field)
+            else:authorization[field]=value
+            with self.subTest(name=name):self.assertTrue(schema_problems(authorization,AUTHORIZATION_SCHEMA))
+
+    def test_expected_pr_must_match_live_authorization_and_ci(self):
+        cases = (
+            self.release_context(pr_number=18),
+            (self.context, self.authorization(self.release_context(pr_number=18))[1]),
+            self.release_context(ci_pr_number=18),
+        )
+        for live, authorization in ((cases[0], self.auth_payload), cases[1], (cases[2], self.auth_payload)):
+            with self.subTest(live=live.pr_number, authorization=authorization["pr_number"], ci=live.ci_pr_number):
+                self.assertTrue(validate_release_context(live, authorization, 17, "bootstrap/agent-company"))
+
+    def test_expected_head_must_match_live_authorization_and_remote(self):
+        alternate = self.release_context(head_branch="other")
+        _, alternate_authorization = self.authorization(alternate)
+        cases = (
+            (alternate, self.auth_payload),
+            (self.context, alternate_authorization),
+            (self.release_context(remote_head_sha=self.base), self.auth_payload),
+        )
+        for live, authorization in cases:
+            with self.subTest(live=live.head_branch, authorization=authorization["head_branch"], remote=live.remote_head_sha):
+                self.assertTrue(validate_release_context(live, authorization, 1, "bootstrap/agent-company"))
+
+    def test_expected_identity_inputs_are_required(self):
+        for pr, branch in ((None, "branch"), (1, None), (1, "")):
+            with self.subTest(pr=pr, branch=branch):
+                self.assertRaises(ValueError, validate_release_context, self.context, self.auth_payload, pr, branch)
     def test_build_exact_live_context_passes(self):
         refs = {"refs/heads/main":self.base, "refs/heads/bootstrap/agent-company":self.candidate}
         with patch("verify_integration.github_json", side_effect=[self.pr_payload(), self.run_payload()]), patch("verify_integration.remote_ref_sha", side_effect=lambda ref:refs[ref]):
-            self.assertEqual(self.context, build_live_release_context("token", 123))
+            self.assertEqual(self.context, build_live_release_context("token", 123, 1, "bootstrap/agent-company"))
+    def test_build_arbitrary_live_context_from_explicit_identity_passes(self):
+        expected = self.release_context(pr_number=17, head_branch="fix/corrective", ci_pr_number=17)
+        refs = {"refs/heads/main":self.base, "refs/heads/fix/corrective":self.candidate}
+        with patch("verify_integration.github_json", side_effect=[self.pr_payload(number=17, head={"ref":"fix/corrective", "sha":self.candidate, "repo":{"full_name":"FlorisOrd/tailor"}}), self.run_payload(pull_requests=[{"number":17}])]), patch("verify_integration.remote_ref_sha", side_effect=lambda ref:refs[ref]):
+            self.assertEqual(expected, build_live_release_context("token", 123, 17, "fix/corrective"))
 
     def test_every_context_field_mutation_fails(self):
         mutations = {
@@ -85,26 +161,26 @@ class IntegrationTests(unittest.TestCase):
         }
         self.assertEqual(set(CONTEXT_FIELDS), set(mutations))
         for field, value in mutations.items():
-            with self.subTest(source="live", field=field): self.assertTrue(validate_release_context(replace(self.context, **{field:value}), self.auth_payload))
+            with self.subTest(source="live", field=field): self.assertTrue(validate_release_context(replace(self.context, **{field:value}), self.auth_payload, 1, "bootstrap/agent-company"))
         for auth_field, context_field in AUTH_CONTEXT_MAP.items():
             changed = dict(self.auth_payload); changed[auth_field] = mutations[context_field]
-            with self.subTest(source="authorization", field=auth_field): self.assertTrue(validate_release_context(self.context, changed))
+            with self.subTest(source="authorization", field=auth_field): self.assertTrue(validate_release_context(self.context, changed, 1, "bootstrap/agent-company"))
 
     def test_ci_association_missing_malformed_or_ambiguous_fails(self):
         for associations in (None, [], [{"number":"1"}], [{"number":1}, {"number":2}]):
             with self.subTest(associations=associations): self.assertRaises(ValueError, ci_identity, self.run_payload(pull_requests=associations))
     def test_wrong_pr_ci_attack_fails(self): self.assertTrue(validate_ci_against_context(self.run_payload(pull_requests=[{"number":2}]), self.context))
-    def test_same_sha_alternate_head_attack_fails(self): self.assertTrue(validate_release_context(replace(self.context, head_branch="alternate"), self.auth_payload))
+    def test_same_sha_alternate_head_attack_fails(self): self.assertTrue(validate_release_context(replace(self.context, head_branch="alternate"), self.auth_payload, 1, "bootstrap/agent-company"))
     def test_builder_does_not_trust_alternate_pr_head_branch(self):
         refs = {"refs/heads/main":self.base, "refs/heads/bootstrap/agent-company":self.candidate}
         with patch("verify_integration.github_json", side_effect=[self.pr_payload(head={"ref":"alternate", "sha":self.candidate, "repo":{"full_name":"FlorisOrd/tailor"}}), self.run_payload()]), patch("verify_integration.remote_ref_sha", side_effect=lambda ref:refs[ref]):
-            self.assertTrue(validate_release_context(build_live_release_context("token", 123), self.auth_payload))
+            self.assertTrue(validate_release_context(build_live_release_context("token", 123, 1, "bootstrap/agent-company"), self.auth_payload, 1, "bootstrap/agent-company"))
     def test_missing_live_github_source_fails(self):
-        with patch("verify_integration.github_json", side_effect=OSError("offline")): self.assertRaises(ValueError, build_live_release_context, "token", 123)
+        with patch("verify_integration.github_json", side_effect=OSError("offline")): self.assertRaises(ValueError, build_live_release_context, "token", 123, 1, "bootstrap/agent-company")
     def test_missing_live_remote_source_fails(self):
-        with patch("verify_integration.github_json", side_effect=[self.pr_payload(), self.run_payload()]), patch("verify_integration.remote_ref_sha", side_effect=ValueError("missing")): self.assertRaises(ValueError, build_live_release_context, "token", 123)
+        with patch("verify_integration.github_json", side_effect=[self.pr_payload(), self.run_payload()]), patch("verify_integration.remote_ref_sha", side_effect=ValueError("missing")): self.assertRaises(ValueError, build_live_release_context, "token", 123, 1, "bootstrap/agent-company")
     def test_incomplete_pr_or_ambiguous_remote_state_fails(self):
-        with patch("verify_integration.github_json", side_effect=[{}, self.run_payload()]): self.assertRaises(ValueError, build_live_release_context, "token", 123)
+        with patch("verify_integration.github_json", side_effect=[{}, self.run_payload()]): self.assertRaises(ValueError, build_live_release_context, "token", 123, 1, "bootstrap/agent-company")
         result = SimpleNamespace(returncode=0, stdout=f"{self.base}\trefs/heads/main\n{self.candidate}\trefs/heads/main\n", stderr="")
         with patch("verify_integration.subprocess.run", return_value=result): self.assertRaises(ValueError, remote_ref_sha, "refs/heads/main")
     def test_original_self_consistent_base_equals_candidate_attack_fails(self):

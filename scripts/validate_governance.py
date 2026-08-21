@@ -4,13 +4,32 @@ import json,re,sys
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1];POLICY_PATH=".github/governance/policy.json"
-REQUIRED_FILES=("AGENTS.md","PRODUCT.md","ARCHITECTURE.md","WORKFLOW.md","QUALITY.md","SECURITY.md","INCIDENT_RESPONSE.md","DECISIONS.md",".github/PULL_REQUEST_TEMPLATE.md",".github/GOVERNANCE_ENFORCEMENT.md",".github/workflows/governance.yml",POLICY_PATH,".github/governance/gate-record.schema.json",".github/governance/authorization.schema.json",".github/governance/GATE_RECORDS.md","scripts/validate_governance.py","scripts/validate_gate_records.py","scripts/validate_evidence.py","scripts/verify_integration.py")
+REQUIRED_FILES=("AGENTS.md","PRODUCT.md","ARCHITECTURE.md","WORKFLOW.md","QUALITY.md","SECURITY.md","INCIDENT_RESPONSE.md","DECISIONS.md",".github/PULL_REQUEST_TEMPLATE.md",".github/GOVERNANCE_ENFORCEMENT.md",".github/workflows/governance.yml",POLICY_PATH,".github/governance/gate-record.schema.json",".github/governance/authorization.schema.json",".github/governance/GATE_RECORDS.md","scripts/fetch_governance_refs.sh","scripts/validate_governance.py","scripts/validate_gate_records.py","scripts/validate_evidence.py","scripts/verify_integration.py")
 TOP={"schema_version","authority","specification_frozen","scope","material_work","roles","current_gate_records","freshness","ci","authorization","integration","future_product_controls","owner_protection","github_free_limits","historical_evidence","factory_v1"}
 ROLES={"Implementation","Independent Code Review","QA","Release"};GATES={"Independent Code Review","QA","Security Review","Release"}
+AUTH_SCHEMA_PATH=".github/governance/authorization.schema.json"
+AUTH_FIXED={
+    "schema_version":1,"record_type":"Bootstrap Governance v0 Merge Authorization",
+    "repository":"FlorisOrd/tailor","head_repository":"FlorisOrd/tailor",
+    "pr_state":"open","merged":False,"base_branch":"main","base_is_ancestor":True,
+    "ci_workflow_name":"Governance Baseline","ci_workflow_path":".github/workflows/governance.yml",
+    "ci_event":"pull_request","ci_status":"completed","ci_conclusion":"success",
+}
 
 def req(value,message,p):
     if not value:p.append(message)
 def all_true(section,keys):return isinstance(section,dict) and all(section.get(k) is True for k in keys)
+def validate_authorization_schema(schema,p):
+    properties=schema.get("properties",{}) if isinstance(schema,dict) else {}
+    required=schema.get("required",[]) if isinstance(schema,dict) else []
+    req(schema.get("type")=="object" and schema.get("additionalProperties") is False,"authorization schema must be a closed object",p)
+    req(isinstance(required,list) and set(required)==set(properties),"authorization schema required fields differ from properties",p)
+    for field,value in AUTH_FIXED.items():req(properties.get(field)=={"const":value},f"authorization schema fixed field changed: {field}",p)
+    for field in ("pr_number","ci_pr_number"):
+        item=properties.get(field,{})
+        req(item.get("type")=="integer" and item.get("minimum")==1 and "const" not in item,f"authorization schema dynamic PR field is frozen or weakened: {field}",p)
+    branch=properties.get("head_branch",{})
+    req(branch.get("type")=="string" and branch.get("minLength")==1 and isinstance(branch.get("pattern"),str) and branch["pattern"] and "const" not in branch,"authorization schema dynamic head branch is frozen or weakened",p)
 def validate_policy(x,p):
     req(set(x)==TOP,"policy top-level contract changed",p);req(x.get("schema_version")==1 and x.get("authority")=="Bootstrap Governance v0" and x.get("specification_frozen") is True,"Bootstrap v0 identity/freeze weakened",p)
     req(all_true(x.get("material_work"),{"ambiguity_defaults_to_material","requires_isolated_branch","requires_pull_request"}),"material-work controls weakened",p)
@@ -36,11 +55,18 @@ def main():
         if any(line.rstrip()!=line for line in text.splitlines()):p.append(f"trailing whitespace: {rel}")
     try:policy=json.loads(contents.get(POLICY_PATH,""));validate_policy(policy,p)
     except json.JSONDecodeError as error:p.append(f"invalid policy JSON: {error}")
-    for schema in (".github/governance/gate-record.schema.json",".github/governance/authorization.schema.json"):
-        try:req(json.loads(contents.get(schema,"{}")).get("additionalProperties") is False,f"{schema} permits unknown fields",p)
+    for schema in (".github/governance/gate-record.schema.json",AUTH_SCHEMA_PATH):
+        try:
+            parsed=json.loads(contents.get(schema,"{}"));req(parsed.get("additionalProperties") is False,f"{schema} permits unknown fields",p)
+            if schema==AUTH_SCHEMA_PATH:validate_authorization_schema(parsed,p)
         except json.JSONDecodeError:p.append(f"invalid schema: {schema}")
     workflow=contents.get(".github/workflows/governance.yml","")
     for token in ("scripts/validate_governance.py","unittest discover","scripts/verify_integration.py","gitleaks/gitleaks-action") :req(token in workflow,f"workflow missing {token}",p)
+    req("governance-ref-auth-smoke:" in workflow and workflow.count("scripts/fetch_governance_refs.sh")==2,"workflow missing shared pre/post-integration governance-ref authentication",p)
+    req(workflow.count("persist-credentials: false")>=5,"workflow persists checkout credentials",p)
+    fetcher=contents.get("scripts/fetch_governance_refs.sh","")
+    for token in ("GIT_ASKPASS", "GIT_TERMINAL_PROMPT=0", "refs/governance/authorizations/", "refs/governance/bootstrap-gates/", "git cat-file -e") :req(token in fetcher,f"governance-ref fetcher missing {token}",p)
+    req("remote set-url" not in fetcher and "credential.helper" not in fetcher and "set -x" not in fetcher,"governance-ref fetcher may persist or expose credentials",p)
     for permission in ("actions: read","contents: read","issues: read","pull-requests: read"):req(permission in workflow,f"workflow missing least-privilege permission {permission}",p)
     req(not re.search(r"permissions:[\s\S]*?\bwrite\b",workflow),"workflow grants write permission",p)
     req("continue-on-error" not in workflow and "|| true" not in workflow,"workflow contains failure suppression",p)

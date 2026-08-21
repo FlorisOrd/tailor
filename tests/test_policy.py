@@ -1,7 +1,7 @@
 import copy,json,sys,unittest
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT/"scripts"));import validate_governance as v
-POLICY=json.loads((ROOT/".github/governance/policy.json").read_text())
+POLICY=json.loads((ROOT/".github/governance/policy.json").read_text());AUTH_SCHEMA=json.loads((ROOT/v.AUTH_SCHEMA_PATH).read_text())
 class PolicyTests(unittest.TestCase):
  def test_policy_passes(self):p=[];v.validate_policy(POLICY,p);self.assertEqual([],p)
 def add(name,path,value):
@@ -22,4 +22,11 @@ add("wrong_gate_namespace",("current_gate_records","canonical_ref_prefix"),"refs
 add("wrong_authorization_namespace",("authorization","canonical_ref_prefix"),"refs/wrong/")
 add("wrong_parent_count",("integration","parent_count"),1)
 add("legacy_becomes_required",("historical_evidence","not_release_prerequisite"),False)
+def add_schema(name,field,value):
+ def test(self):
+  x=copy.deepcopy(AUTH_SCHEMA);x["properties"][field]=value;p=[];v.validate_authorization_schema(x,p);self.assertTrue(p,name)
+ setattr(PolicyTests,"test_reject_authorization_schema_"+name,test)
+add_schema("pr_one_off","pr_number",{"const":1})
+add_schema("ci_pr_one_off","ci_pr_number",{"const":1})
+add_schema("head_one_off","head_branch",{"const":"bootstrap/agent-company"})
 if __name__=="__main__":unittest.main()
