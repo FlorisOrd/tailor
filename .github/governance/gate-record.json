@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "record_type": "Bootstrap Governance v0 Gate Record",
+  "gate_record_id": "BOOTSTRAP-GATE-RELEASE-BV0-CORR-01-20260821",
+  "gate_type": "Release",
+  "agent_role": "Release",
+  "agent_id": "RELEASE-BV0-CORR-01 Post-Integration CI Repair Integration",
+  "publisher_agent_id": "RELEASE-BV0-CORR-01 Post-Integration CI Repair Integration",
+  "pr_number": 2,
+  "base_sha": "a46c286e03903ef6a44dbdd114b7a6400bbfddf7",
+  "candidate_sha": "8aa23907acdd381f6a081af4eaa69f5a8ee6ed91",
+  "candidate_tree": "925456608de569c9064d1c96df0aad68478140f7",
+  "timestamp": "2026-08-21T16:50:32Z",
+  "scope": "Independent final Release gate for corrective PR #2 under Bootstrap Governance v0, including live candidate identity, selected Review/QA/Security evidence, role separation, candidate CI, governance-ref authentication smoke, corrective objectives, and authorization/integration readiness.",
+  "checks": [
+    "Confirmed this Release identity is distinct from recorded Implementation, Independent Code Review, QA, and Security Review identities.",
+    "Reconstructed live GitHub PR #2 state as open, draft, unmerged, base main at a46c286e03903ef6a44dbdd114b7a6400bbfddf7, head fix/bootstrap-post-integration-ci-auth at 8aa23907acdd381f6a081af4eaa69f5a8ee6ed91, candidate tree 925456608de569c9064d1c96df0aad68478140f7, and divergence 0 behind / 1 ahead; fresh exact remote refs matched the recorded base and candidate.",
+    "Confirmed candidate CI run 32497412431 is the Governance Baseline pull_request run solely associated with PR #2 at the exact candidate and concluded success; required governance/tests, candidate identity, authentication smoke, and Gitleaks jobs passed, while integration identity was correctly skipped.",
+    "Inspected authentication-smoke job 96819009073: checkout used persist-credentials false, workflow permissions were read-only, scripts/fetch_governance_refs.sh executed, private authorization and Bootstrap Gate refs were fetched, representative refs were checked as commit objects, no token was exposed, and the job passed.",
+    "Confirmed the candidate contains the shared scoped GIT_ASKPASS governance-ref fetch helper and replaces authorization-time hardcoded PR/head verifier constants with mandatory independently supplied expected PR/head inputs.",
+    "Release readiness failed closed because the exact candidate leaves .github/governance/authorization.schema.json constrained to pr_number 1, ci_pr_number 1, and head_branch bootstrap/agent-company. A PR #2 authorization cannot be schema-valid, so the required authorization/integration machinery is invalid for this candidate.",
+    "No Release PASS, Authorization to Merge, authorization ref, integration commit, main update, deployment, or implementation-content change was made."
+  ],
+  "findings": [
+    {
+      "finding_id": "REL-CORR-01",
+      "severity": "MAJOR",
+      "summary": "The merge-authorization schema still permits only PR #1 and bootstrap/agent-company, so an exact PR #2 authorization cannot satisfy the current Bootstrap-v0 schema."
+    }
+  ],
+  "disposition": "FAIL"
+}
