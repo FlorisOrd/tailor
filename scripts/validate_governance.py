@@ -4,7 +4,7 @@ import json,re,sys
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1];POLICY_PATH=".github/governance/policy.json"
-REQUIRED_FILES=("AGENTS.md","PRODUCT.md","ARCHITECTURE.md","WORKFLOW.md","QUALITY.md","SECURITY.md","INCIDENT_RESPONSE.md","DECISIONS.md",".github/PULL_REQUEST_TEMPLATE.md",".github/GOVERNANCE_ENFORCEMENT.md",".github/workflows/governance.yml",POLICY_PATH,".github/governance/gate-record.schema.json",".github/governance/authorization.schema.json",".github/governance/GATE_RECORDS.md","scripts/validate_governance.py","scripts/validate_gate_records.py","scripts/validate_evidence.py","scripts/verify_integration.py")
+REQUIRED_FILES=("AGENTS.md","PRODUCT.md","ARCHITECTURE.md","WORKFLOW.md","QUALITY.md","SECURITY.md","INCIDENT_RESPONSE.md","DECISIONS.md",".github/PULL_REQUEST_TEMPLATE.md",".github/GOVERNANCE_ENFORCEMENT.md",".github/workflows/governance.yml",POLICY_PATH,".github/governance/gate-record.schema.json",".github/governance/authorization.schema.json",".github/governance/GATE_RECORDS.md","scripts/fetch_governance_refs.sh","scripts/validate_governance.py","scripts/validate_gate_records.py","scripts/validate_evidence.py","scripts/verify_integration.py")
 TOP={"schema_version","authority","specification_frozen","scope","material_work","roles","current_gate_records","freshness","ci","authorization","integration","future_product_controls","owner_protection","github_free_limits","historical_evidence","factory_v1"}
 ROLES={"Implementation","Independent Code Review","QA","Release"};GATES={"Independent Code Review","QA","Security Review","Release"}
 
@@ -41,6 +41,11 @@ def main():
         except json.JSONDecodeError:p.append(f"invalid schema: {schema}")
     workflow=contents.get(".github/workflows/governance.yml","")
     for token in ("scripts/validate_governance.py","unittest discover","scripts/verify_integration.py","gitleaks/gitleaks-action") :req(token in workflow,f"workflow missing {token}",p)
+    req("governance-ref-auth-smoke:" in workflow and workflow.count("scripts/fetch_governance_refs.sh")==2,"workflow missing shared pre/post-integration governance-ref authentication",p)
+    req(workflow.count("persist-credentials: false")>=5,"workflow persists checkout credentials",p)
+    fetcher=contents.get("scripts/fetch_governance_refs.sh","")
+    for token in ("GIT_ASKPASS", "GIT_TERMINAL_PROMPT=0", "refs/governance/authorizations/", "refs/governance/bootstrap-gates/", "git cat-file -e") :req(token in fetcher,f"governance-ref fetcher missing {token}",p)
+    req("remote set-url" not in fetcher and "credential.helper" not in fetcher and "set -x" not in fetcher,"governance-ref fetcher may persist or expose credentials",p)
     for permission in ("actions: read","contents: read","issues: read","pull-requests: read"):req(permission in workflow,f"workflow missing least-privilege permission {permission}",p)
     req(not re.search(r"permissions:[\s\S]*?\bwrite\b",workflow),"workflow grants write permission",p)
     req("continue-on-error" not in workflow and "|| true" not in workflow,"workflow contains failure suppression",p)

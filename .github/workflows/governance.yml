@@ -67,6 +67,23 @@ jobs:
           CANDIDATE_SHA: ${{ github.event.pull_request.head.sha }}
         run: python3 scripts/verify_integration.py candidate --base "$BASE_SHA" --candidate "$CANDIDATE_SHA"
 
+  governance-ref-auth-smoke:
+    name: Authenticate and read governance refs
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out candidate without persisted credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Fetch and validate private governance refs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: scripts/fetch_governance_refs.sh
+
   integration-identity:
     name: Verify main integration tree identity
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -83,6 +100,5 @@ jobs:
           INTEGRATION_SHA: ${{ github.sha }}
           GITHUB_TOKEN: ${{ github.token }}
         run: |
-          git fetch origin "+refs/governance/authorizations/*:refs/remotes/origin/governance-authorizations/*"
-          git fetch origin "+refs/governance/bootstrap-gates/*:refs/governance/bootstrap-gates/*"
+          scripts/fetch_governance_refs.sh
           python3 scripts/verify_integration.py integration --integration "$INTEGRATION_SHA" --reconcile-live
