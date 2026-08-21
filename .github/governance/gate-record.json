@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "record_type": "Bootstrap Governance v0 Gate Record",
+  "gate_record_id": "BOOTSTRAP-GATE-QA-BV0-CORR-03-20260821",
+  "gate_type": "QA",
+  "agent_role": "QA",
+  "agent_id": "QA-BV0-CORR-03 Post-Merge CI Association Repair Validation",
+  "publisher_agent_id": "QA-BV0-CORR-03 Post-Merge CI Association Repair Validation",
+  "pr_number": 3,
+  "base_sha": "b7a3262d83e8851267ab93a4d6c48e27ade92fa8",
+  "candidate_sha": "fc556795ad2f3fb8eff561bd3618153401a3c5f5",
+  "candidate_tree": "f3d97288b5d766c3319c879589145eabf56cb8ca",
+  "timestamp": "2026-08-21T19:45:01Z",
+  "scope": "Independent REL-CORR-02 behavioral, adversarial, regression, and live-evidence validation for exact PR 3 candidate",
+  "checks": [
+    "Exact live PR, base, candidate, tree, branch, state, six-file scope, ancestry, and 0-behind/1-ahead divergence verified",
+    "Fresh Independent Code Review Gate object, sole parent, canonical ref, exact PR-visible JSON, PASS disposition, and freshness verified",
+    "Historical REL-CORR-02 empty-association condition reproduced and legitimate post-merge state accepted with stronger bindings",
+    "Pre-merge empty, wrong, multiple, and malformed associations rejected; exact single matching association accepted",
+    "Post-merge empty and exact matching associations accepted; conflicting, multiple, and malformed associations rejected",
+    "Cross-PR, SHA, branch, repository, fork, merged-PR, run, workflow, event, status, result, authorization, Gate, parent, tree, trailer, and stale-evidence substitutions rejected",
+    "Complete Bootstrap regression suite passed: 123/123",
+    "Policy and authorization-schema mutation suite passed: 65/65",
+    "Governance validator, candidate identity, ancestry, changed-file scope, and git diff check passed",
+    "Candidate Actions run 32515688562 passed for exact candidate",
+    "Jobs 96876706591, 96876706850, 96876706924, 96876706986, and 96876707029 passed; integration-only job 96876707836 correctly skipped",
+    "Historical smoke job 96876706986 exercised PR 2 authorization 74bd931c1e9469e8e0feef215bfd888d97903942, run 32506504659, and integration b7a3262d83e8851267ab93a4d6c48e27ade92fa8",
+    "Zero current BLOCKING findings and zero current MAJOR findings"
+  ],
+  "findings": [],
+  "disposition": "PASS"
+}
