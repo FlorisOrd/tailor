@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "authority": "Bootstrap Governance v0",
+  "specification_frozen": true,
+  "scope": "Repository bootstrap only; reusable Factory v1 capabilities are deferred to agent-software-factory.",
+  "material_work": {"ambiguity_defaults_to_material": true, "requires_isolated_branch": true, "requires_pull_request": true},
+  "roles": {
+    "required": ["Implementation", "Independent Code Review", "QA", "Release"],
+    "mutually_distinct": ["Implementation", "Independent Code Review", "QA", "Release"],
+    "security_triggered": true,
+    "security_distinct_from": ["Implementation", "Lead / Engineering Manager", "QA", "Release"],
+    "lead_transcription_is_gate_evidence": false
+  },
+  "current_gate_records": {
+    "protocol": "Bootstrap Governance v0 Gate Record",
+    "required_types": ["Independent Code Review", "QA", "Security Review", "Release"],
+    "candidate_specific": true,
+    "immutable_git_object": true,
+    "commit_parent_is_candidate": true,
+    "canonical_ref_prefix": "refs/governance/bootstrap-gates/",
+    "pr_visible_exact_copy_required": true,
+    "publisher_agent_id_must_equal_agent_id": true,
+    "disposition_must_be_pass": true,
+    "blocking_major_forbid_pass": true,
+    "explicit_release_selection": true,
+    "historical_records_are_not_current_evidence": true
+  },
+  "freshness": {"exact_pr_base_candidate_tree": true, "candidate_change_invalidates": true, "repair_requires_new_candidate": true, "fresh_independent_pass_after_repair": true},
+  "ci": {"fail_closed": true, "governance_validation_required": true, "bootstrap_tests_required": true, "gitleaks_required": true, "candidate_identity_required": true, "current_candidate_success_required": true},
+  "authorization": {
+    "release_only": true,
+    "immutable_git_object": true,
+    "canonical_ref_prefix": "refs/governance/authorizations/",
+    "binds_exact_pr_base_candidate_tree": true,
+    "binds_exact_current_gate_commits": true,
+    "binds_current_ci": true,
+    "commit_parent_is_candidate": true
+  },
+  "integration": {"merge_commit_only": true, "parent_count": 2, "first_parent_is_authorized_base": true, "second_parent_is_authorized_candidate": true, "tree_equals_authorized_candidate_tree": true, "authorization_identity_exact": true},
+  "future_product_controls": {"security_triggers_defined": true, "accessibility_browser_gate_defined": true, "high_risk_non_local_staging_defined": true, "rollback_monitoring_defined": true, "incident_response_defined": true},
+  "owner_protection": {"owner_never_codes_or_debugs": true, "owner_never_operates_git": true, "owner_never_interprets_ci_logs": true, "routine_technical_decisions_are_agents": true},
+  "github_free_limits": {"agent_identity_not_cryptographically_proven": true, "distinct_processes_not_hard_enforced": true, "direct_pushes_not_fully_blocked": true, "private_repo_controls_not_overstated": true},
+  "historical_evidence": {"preserved_unchanged": true, "audit_only_for_superseded_candidates": true, "not_release_prerequisite": true, "no_cross_version_normalization": true},
+  "factory_v1": {"repository": "agent-software-factory", "deferred": true, "starts_with_uniform_protocol_from_genesis": true}
+}
