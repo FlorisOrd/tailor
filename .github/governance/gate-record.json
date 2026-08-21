@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "record_type": "Bootstrap Governance v0 Gate Record",
+  "gate_record_id": "BOOTSTRAP-GATE-REVIEW-BV0-CORR-01-20260821",
+  "gate_type": "Independent Code Review",
+  "agent_role": "Independent Code Review",
+  "agent_id": "REVIEW-BV0-CORR-01 Post-Integration CI Repair Verification",
+  "publisher_agent_id": "REVIEW-BV0-CORR-01 Post-Integration CI Repair Verification",
+  "pr_number": 2,
+  "base_sha": "a46c286e03903ef6a44dbdd114b7a6400bbfddf7",
+  "candidate_sha": "8aa23907acdd381f6a081af4eaa69f5a8ee6ed91",
+  "candidate_tree": "925456608de569c9064d1c96df0aad68478140f7",
+  "timestamp": "2026-08-21T15:44:38Z",
+  "scope": "Fresh independent bounded code review of corrective PR #2 under Bootstrap Governance v0, covering the exact candidate identity, original private governance-ref authentication failure, shared read-only non-persistent authentication helper, explicit trusted PR/head inputs and non-PR1 liveness, preservation of PR #1 identity protections, post-merge integration semantics, exact hosted Actions smoke/run, full regression suite, policy mutations, validator, and candidate identity.",
+  "checks": [
+    "Verified live PR #2 is open, draft, unmerged, based on main, and headed by fix/bootstrap-post-integration-ci-auth at candidate 8aa23907acdd381f6a081af4eaa69f5a8ee6ed91; live API base is a46c286e03903ef6a44dbdd114b7a6400bbfddf7; candidate tree is 925456608de569c9064d1c96df0aad68478140f7; base is an ancestor; divergence is 0 behind and 1 ahead; worktree was clean before publication.",
+    "Reviewed the complete seven-file diff and confirmed it is bounded corrective governance work with no product code, no modified historical PR #1 Gate Record or authorization objects, and no Factory-v1 machinery.",
+    "Confirmed historical run 32476020919 failed after persist-credentials false when unauthenticated private governance-ref fetches produced could not read Username for https://github.com; the corrective integration path now invokes scripts/fetch_governance_refs.sh before integration verification.",
+    "Reviewed scripts/fetch_governance_refs.sh: GITHUB_TOKEN is mandatory, GIT_TERMINAL_PROMPT is disabled, GIT_ASKPASS is command-scoped through the helper, the origin URL and Git configuration are not modified, the token is not logged, only fetch/read/object checks occur, and missing token/ref/object/authentication conditions fail closed.",
+    "Inspected exact Actions run 32497412431 and job 96819009073: candidate 8aa23907acdd381f6a081af4eaa69f5a8ee6ed91 was checked out with persist-credentials false; token permissions were read-only; the shared helper actually fetched existing private authorization and Bootstrap Gate refs; both namespaces resolved to commit objects; the job passed without visible token leakage.",
+    "Confirmed the pull-request smoke and post-integration job use the same scripts/fetch_governance_refs.sh mechanism; workflow permissions remain actions/contents/issues/pull-requests read and add no write, id-token, or packages privilege; no continue-on-error, || true, or swallowed authentication failure exists.",
+    "Verified explicit trusted expected PR number and head branch inputs are required for authorization-time live reconciliation; equality binds expected PR/head to live GitHub PR, authorization, CI association, and fresh remote refs; arbitrary positive non-PR1 PR/branch fixtures pass only when all sources match, while wrong/missing identity and the established PR #1 attacks fail.",
+    "Confirmed integration verification consumes immutable authorization context after merge without requiring the PR to remain open, while retaining exact authorization/ref, selected Gate Records, CI identity, two-parent order, authorized base/candidate parents, and integration/candidate tree equality.",
+    "Ran the complete Bootstrap suite locally: 109 tests passed in 239.665 seconds. Inspected new non-PR1 liveness, required identity, wrong PR/head/live/authorization/remote, preserved attack, and integration tests.",
+    "Ran the policy mutation suite: 62 of 62 passed. Governance validator passed; candidate identity reported the exact base/candidate/tree and one commit ahead; git diff --check passed.",
+    "Independently inspected exact remote run 32497412431: Validate governance, 109 Bootstrap tests, governance-ref authentication smoke, candidate identity, and Gitleaks passed; integration identity was correctly skipped for pull_request. No job used failure suppression.",
+    "Confirmed integration a46c286e03903ef6a44dbdd114b7a6400bbfddf7 and historical failed run 32476020919 remain historical truth; no corrective diff modifies prior Gate Records, authorization, or Git history."
+  ],
+  "findings": [],
+  "disposition": "PASS"
+}
