@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "record_type": "Bootstrap Governance v0 Gate Record",
+  "gate_record_id": "BOOTSTRAP-GATE-QA-BV0-CORR-02-20260821",
+  "gate_type": "QA",
+  "agent_role": "QA",
+  "agent_id": "QA-BV0-CORR-02 Authorization Schema Repair Validation",
+  "publisher_agent_id": "QA-BV0-CORR-02 Authorization Schema Repair Validation",
+  "pr_number": 2,
+  "base_sha": "a46c286e03903ef6a44dbdd114b7a6400bbfddf7",
+  "candidate_sha": "d6a96a5a54b95ad3a974081355352e50bc33b30e",
+  "candidate_tree": "0c6bd75aa705918a07269fa009a8ebcdb7324f7e",
+  "timestamp": "2026-08-21T17:37:20Z",
+  "scope": "Fresh independent behavioral QA of corrective PR #2 under Bootstrap Governance v0 for the exact current candidate, including REL-CORR-01 historical reproduction and repair validation, authorization schema liveness and negatives, runtime fail-closed identity, stale and role evidence, authenticated governance refs, release-readiness and post-merge synthetic fixtures, mandatory workflow behavior, complete local tests, and exact hosted CI.",
+  "checks": [
+    "Verified live PR #2 is open, draft, unmerged, base main at a46c286e03903ef6a44dbdd114b7a6400bbfddf7, head fix/bootstrap-post-integration-ci-auth at d6a96a5a54b95ad3a974081355352e50bc33b30e, tree 0c6bd75aa705918a07269fa009a8ebcdb7324f7e, base ancestry, remote identity, and divergence 0 behind / 2 ahead.",
+    "Verified fresh Review gate BOOTSTRAP-GATE-REVIEW-BV0-CORR-02-20260821 at object 88c68d72c883c4715132a7f398903648c8a9a754: sole parent is the current candidate; record identity, schema, PASS disposition, canonical candidate-specific ref, and PR-visible comment 5373119167 match.",
+    "Reproduced REL-CORR-01 with the historical PR 1 and bootstrap/agent-company constraints: an otherwise correct PR #2 authorization fails the historical schema model; the actual current schema passes a complete PR #2 authorization and an arbitrary PR #314 authorization.",
+    "The actual schema rejects zero, missing, empty, malformed branch, unknown-field, and fixed-constant mutations while anti-rehardcoding mutations for pr_number, ci_pr_number, and head_branch fail validation; REL-CORR-01 is REPAIRED AND QA-VALIDATED.",
+    "Schema-valid but context-wrong authorizations fail runtime verification for expected/live/CI PR, expected/live/remote head, remote main, candidate, candidate tree, and CI head mismatches; schema validity is not Release authority.",
+    "A complete synthetic current PR #2 context with separated current Gate Records and schema-valid authorization passes the actual authorization verifier; no real authorization was published.",
+    "Old candidate 8aa23907acdd381f6a081af4eaa69f5a8ee6ed91 evidence fails current freshness while the current Review passes; Implementation/Review/QA/Release and triggered Security separation, lead-transcription rejection, stale/FAIL rejection, and serious-finding rejection remain intact.",
+    "Authenticated governance-ref behavior remains fail closed: all checkouts disable persisted credentials, permissions are read-only, PR and post-integration paths share scripts/fetch_governance_refs.sh, no credential-bearing URL/persistence/remote write exists, and missing or rejected token fails.",
+    "Inspected exact hosted run 32506504659 and authentication-smoke job 96847750989: exact candidate checkout, read-only token, real private authorization and gate ref fetches, commit-object validation, PASS, and no visible token leakage; governance/tests, candidate identity, and Gitleaks pass and integration identity is correctly skipped for pull_request.",
+    "Release-readiness fixtures block missing, stale, FAIL, wrong-identity, failed-CI, serious-finding, and schema-invalid states; the complete valid synthetic state reaches Release-decision eligibility without performing Release.",
+    "Synthetic post-merge fixtures enforce immutable exact authorization/ref/object, current selected gates, exact candidate CI, exactly two authorized parents, candidate-tree equality, and exact Governance-PR/Authorization linkage; merged PR state alone does not invalidate integration verification.",
+    "Mandatory workflow failures are not optional: governance validation, Bootstrap tests, candidate identity, Gitleaks, and governance-ref authentication are required without failure suppression.",
+    "Ran the complete local suite on the exact candidate: 115/115 passed in 243.977 seconds; focused policy/schema mutations: 65/65 passed; governance validator, candidate verifier, and git diff --check passed. Test substance covers the behavioral acceptance and failure cases above.",
+    "Confirmed normal technical flow requires no owner coding, debugging, Git operation, credential handling, CI diagnosis, SHA/ref interpretation, or merge construction; zero BLOCKING and zero MAJOR findings; no implementation files were changed."
+  ],
+  "findings": [],
+  "disposition": "PASS"
+}
