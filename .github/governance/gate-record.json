@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "record_type": "Bootstrap Governance v0 Gate Record",
+  "gate_record_id": "BOOTSTRAP-GATE-REVIEW-BV0-CORR-02-20260821",
+  "gate_type": "Independent Code Review",
+  "agent_role": "Independent Code Review",
+  "agent_id": "REVIEW-BV0-CORR-02 Authorization Schema Repair Verification",
+  "publisher_agent_id": "REVIEW-BV0-CORR-02 Authorization Schema Repair Verification",
+  "pr_number": 2,
+  "base_sha": "a46c286e03903ef6a44dbdd114b7a6400bbfddf7",
+  "candidate_sha": "d6a96a5a54b95ad3a974081355352e50bc33b30e",
+  "candidate_tree": "0c6bd75aa705918a07269fa009a8ebcdb7324f7e",
+  "timestamp": "2026-08-21T17:25:17Z",
+  "scope": "Fresh independent complete-code review of corrective PR #2 under Bootstrap Governance v0 for the exact two-commit candidate, including independent recheck of REL-CORR-01, real authorization-schema validation, strict trusted/live runtime identity, active hardcoding and anti-drift audits, preservation of authenticated private governance-ref fetching, and exact local and hosted CI evidence.",
+  "checks": [
+    "Verified live PR #2 is open, draft, unmerged, based on main, and headed by fix/bootstrap-post-integration-ci-auth; base is a46c286e03903ef6a44dbdd114b7a6400bbfddf7, candidate is d6a96a5a54b95ad3a974081355352e50bc33b30e, tree is 0c6bd75aa705918a07269fa009a8ebcdb7324f7e, remote main/head match, base is the merge base, and divergence is 0 behind / 2 ahead.",
+    "Reviewed the complete nine-file, two-commit candidate diff and confirmed it is bounded to Bootstrap-v0 governance authentication, authorization identity/schema, validators, tests, workflow, and explanatory audit text; no product code, Factory-v1 machinery, historical evidence rewrite, main update, merge, QA, Security Review, or Release action is included.",
+    "Independently rechecked REL-CORR-01: authorization.schema.json defines pr_number and ci_pr_number as integer minimum 1 without const, and head_branch as a required non-empty safely patterned string without the historical bootstrap/agent-company const; fixed repository, base, PR-state, ancestry, workflow, event, status, and conclusion constants remain fixed.",
+    "Used the actual PowerShell JSON Schema validator against the current authorization schema and structurally complete records: PR #2 with fix/bootstrap-post-integration-ci-auth passed, and future PR #314 with fix/example-future-change passed.",
+    "Actual schema validation rejected pr_number 0, ci_pr_number 0, missing pr_number, missing ci_pr_number, missing head_branch, empty head_branch, leading/trailing/double slash, whitespace, newline, double-dot, at-brace, dot-lock, trailing dot, tilde, caret, colon, question mark, star, opening bracket, and backslash branch inputs; fix/bootstrap-post-integration-ci-auth, feature/example, and release/v1-2 passed.",
+    "Verified schema/runtime separation: schema validates shape and fixed Bootstrap constants, while validate_release_context and live-context construction require independent expected PR/head inputs and exact equality across expected identity, live GitHub PR, authorization, CI PR association, fresh remote main/head, candidate SHA/tree, ancestry, workflow identity, status, and conclusion.",
+    "Inspected and exercised runtime mismatch coverage for wrong expected PR, live PR, authorization PR, CI association, expected head, live head, authorization head, remote head, remote main, changed candidate, malformed identity input, coherent substitution, and alternate-branch/same-SHA attacks; all fail closed.",
+    "Audited active Bootstrap-v0 release and authorization paths for PR #1 and bootstrap/agent-company hardcoding. No active control retains those constraints; remaining occurrences are test fixtures, anti-rehardcoding mutations, or historical/audit context.",
+    "Verified validate_governance.py enforces a closed complete authorization schema, preserves fixed Bootstrap constants, requires dynamic positive PR fields and a non-constant validated head branch, and rejects restoring pr_number const 1, ci_pr_number const 1, or head_branch const bootstrap/agent-company.",
+    "Verified the earlier authentication repair remains intact: every checkout uses persist-credentials false; workflow permissions are read-only; both PR smoke and post-integration paths use scripts/fetch_governance_refs.sh; token is supplied only through masked GIT_ASKPASS; no credential-bearing URL, credential persistence, remote write, failure suppression, or fail-open path exists.",
+    "Ran the complete local Bootstrap suite on the exact candidate: 115 tests passed in 253.153 seconds. Ran tests.test_policy: 65 tests passed, including all three anti-rehardcoding mutations. Governance validator passed, candidate identity reported the exact base/candidate/tree and two commits ahead, and git diff --check passed.",
+    "Inspected exact Actions run 32506504659 and job 96847750989: run is successful for candidate d6a96a5a54b95ad3a974081355352e50bc33b30e; governance validation and 115 tests passed; authenticated smoke ran with read-only token and persist-credentials false, fetched private authorization and Bootstrap Gate refs, validated representative objects as commits, and passed without visible credential leakage; candidate identity and Gitleaks passed; integration identity was correctly skipped for pull_request.",
+    "Confirmed REL-CORR-01 is repaired and independently rechecked on the current candidate, with zero BLOCKING and zero MAJOR findings, and confirmed the worktree remained clean with no implementation files changed."
+  ],
+  "findings": [],
+  "disposition": "PASS"
+}
