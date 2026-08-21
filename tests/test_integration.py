@@ -1,10 +1,11 @@
-import json, os, subprocess, sys, tempfile, unittest
+import json, os, re, subprocess, sys, tempfile, unittest
 from dataclasses import asdict, replace
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
+AUTHORIZATION_SCHEMA = json.loads((ROOT / ".github/governance/authorization.schema.json").read_text())
 sys.path.insert(0, str(ROOT / "scripts"))
 from tests.test_gate_records import record
 from verify_integration import (
@@ -12,6 +13,23 @@ from verify_integration import (
     remote_ref_sha, validate_ci_against_context, validate_release_context, verify_authorization,
     verify_integration,
 )
+
+def schema_problems(value, schema, path="authorization"):
+    problems=[]
+    if "const" in schema and value != schema["const"]: problems.append(f"{path} differs from const")
+    kind=schema.get("type")
+    valid_type={"object":isinstance(value,dict),"string":isinstance(value,str),"integer":isinstance(value,int) and not isinstance(value,bool)}.get(kind,True)
+    if not valid_type:return problems+[f"{path} has wrong type"]
+    if kind=="object":
+        properties=schema.get("properties",{});required=schema.get("required",[])
+        problems.extend(f"{path}.{field} is missing" for field in required if field not in value)
+        if schema.get("additionalProperties") is False:problems.extend(f"{path}.{field} is unknown" for field in value if field not in properties)
+        for field in value.keys() & properties.keys():problems.extend(schema_problems(value[field],properties[field],f"{path}.{field}"))
+    if kind=="string":
+        if len(value)<schema.get("minLength",0):problems.append(f"{path} is too short")
+        if "pattern" in schema and re.fullmatch(schema["pattern"],value) is None:problems.append(f"{path} has invalid format")
+    if kind=="integer" and value<schema.get("minimum",value):problems.append(f"{path} is below minimum")
+    return problems
 
 class IntegrationTests(unittest.TestCase):
     def setUp(self):
@@ -72,6 +90,28 @@ class IntegrationTests(unittest.TestCase):
         context = self.release_context(pr_number=17, head_branch="fix/corrective", ci_pr_number=17)
         _, authorization = self.authorization(context)
         self.assertEqual([], validate_release_context(context, authorization, 17, "fix/corrective"))
+
+    def test_pr_2_release_authorization_is_schema_valid_and_exact_context_valid(self):
+        context = self.release_context(pr_number=2, head_branch="fix/bootstrap-post-integration-ci-auth", ci_pr_number=2)
+        _, authorization = self.authorization(context)
+        self.assertEqual([], schema_problems(authorization, AUTHORIZATION_SCHEMA))
+        self.assertEqual([], validate_release_context(context, authorization, 2, "fix/bootstrap-post-integration-ci-auth"))
+
+    def test_arbitrary_future_authorization_is_schema_valid(self):
+        context = self.release_context(pr_number=314, head_branch="repair/future-314", ci_pr_number=314)
+        _, authorization = self.authorization(context)
+        self.assertEqual([], schema_problems(authorization, AUTHORIZATION_SCHEMA))
+
+    def test_authorization_schema_rejects_missing_zero_and_empty_dynamic_identity(self):
+        cases={
+            "zero_pr":{"pr_number":0},"zero_ci_pr":{"ci_pr_number":0},"empty_head":{"head_branch":""},
+            "missing_pr":{"pr_number":None},"missing_ci_pr":{"ci_pr_number":None},"missing_head":{"head_branch":None},
+        }
+        for name,change in cases.items():
+            authorization=dict(self.auth_payload);field,value=next(iter(change.items()))
+            if value is None:authorization.pop(field)
+            else:authorization[field]=value
+            with self.subTest(name=name):self.assertTrue(schema_problems(authorization,AUTHORIZATION_SCHEMA))
 
     def test_expected_pr_must_match_live_authorization_and_ci(self):
         cases = (

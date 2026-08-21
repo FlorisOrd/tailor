@@ -31,3 +31,7 @@ Before merge, Release runs `scripts/verify_integration.py authorization --author
 The finite Bootstrap-v0 context is: repository and head repository; PR number/state/merged status; base branch/SHA; governed head branch/SHA; candidate tree; remote base/head SHAs; ancestry result; and CI workflow name/path, event, exact single PR association, head SHA, status, and conclusion. Trusted constants are `FlorisOrd/tailor`, `main`, and `.github/workflows/governance.yml` / `Governance Baseline`; the expected PR number and governed head branch are required independent verifier inputs. Missing, malformed, duplicate, ambiguous, unavailable, or mismatched fields fail closed.
 
 REVIEW-05 through REVIEW-08 and their objects, refs, migration binding, and publication audit remain unchanged historical evidence for superseded candidates. They guide regression testing and review, but Release does not normalize or reconcile their formats.
+
+## Corrective Implementation Status
+
+REL-CORR-01: **IMPLEMENTATION REPAIRED — AWAITING INDEPENDENT RECHECK**. The Release FAIL `BOOTSTRAP-GATE-RELEASE-BV0-CORR-01-20260821` remains historical evidence for superseded candidate `8aa23907acdd381f6a081af4eaa69f5a8ee6ed91`; its Review, QA, and Security PASS evidence is stale for the repaired candidate. Fresh Independent Code Review, QA, Security Review, and Release evidence is required.
