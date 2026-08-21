@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "record_type": "Bootstrap Governance v0 Merge Authorization",
+  "authorization_id": "AUTH-BV0-PR2-D6A96A5-20260821",
+  "timestamp": "2026-08-21T18:19:01Z",
+  "implementation_agent_id": "IMPL-BV0-CORR-02 Authorization Schema Generalization Repair",
+  "lead_agent_id": "LEAD-BV0-CORR-02 Release Coordination",
+  "release_agent_id": "RELEASE-BV0-CORR-03 Final Corrective Integration",
+  "ci_run_id": 32506504659,
+  "gate_record_commits": {
+    "Independent Code Review": "88c68d72c883c4715132a7f398903648c8a9a754",
+    "QA": "8ffd4a8d44fb95d5879ce36417be8f2fd83caa70",
+    "Security Review": "f109d590243cf768ee0314471cf3bb4520772a37",
+    "Release": "ae2c4a9d7a8c86afe736237e2dd4950c3d8cf44a"
+  },
+  "repository": "FlorisOrd/tailor",
+  "head_repository": "FlorisOrd/tailor",
+  "pr_number": 2,
+  "pr_state": "open",
+  "merged": false,
+  "base_branch": "main",
+  "base_sha": "a46c286e03903ef6a44dbdd114b7a6400bbfddf7",
+  "head_branch": "fix/bootstrap-post-integration-ci-auth",
+  "candidate_sha": "d6a96a5a54b95ad3a974081355352e50bc33b30e",
+  "candidate_tree": "0c6bd75aa705918a07269fa009a8ebcdb7324f7e",
+  "remote_base_sha": "a46c286e03903ef6a44dbdd114b7a6400bbfddf7",
+  "remote_candidate_sha": "d6a96a5a54b95ad3a974081355352e50bc33b30e",
+  "base_is_ancestor": true,
+  "ci_workflow_name": "Governance Baseline",
+  "ci_workflow_path": ".github/workflows/governance.yml",
+  "ci_event": "pull_request",
+  "ci_pr_number": 2,
+  "ci_candidate_sha": "d6a96a5a54b95ad3a974081355352e50bc33b30e",
+  "ci_status": "completed",
+  "ci_conclusion": "success"
+}
+
