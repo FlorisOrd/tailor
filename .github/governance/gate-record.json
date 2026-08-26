@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "record_type": "Bootstrap Governance v0 Gate Record",
+  "gate_record_id": "BOOTSTRAP-GATE-RELEASE-BV0-CORR-04-20260826",
+  "gate_type": "Release",
+  "agent_role": "Release",
+  "agent_id": "RELEASE-BV0-CORR-04 Post-Merge CI Association Repair Integration",
+  "publisher_agent_id": "RELEASE-BV0-CORR-04 Post-Merge CI Association Repair Integration",
+  "pr_number": 3,
+  "base_sha": "b7a3262d83e8851267ab93a4d6c48e27ade92fa8",
+  "candidate_sha": "fc556795ad2f3fb8eff561bd3618153401a3c5f5",
+  "candidate_tree": "f3d97288b5d766c3319c879589145eabf56cb8ca",
+  "timestamp": "2026-08-26T11:40:55Z",
+  "scope": "Independent Release verification and deterministic integration of the bounded six-file PR 3 REL-CORR-02 repair under Bootstrap Governance v0",
+  "checks": [
+    "Repository policy, schemas, Gate protocol, validators, workflow, and tests inspected",
+    "Live PR 3 open, draft, unmerged identity and exact base, head repository, branch, candidate, tree, parent, ancestry, divergence, and six-file scope verified",
+    "Implementation, Independent Code Review, QA, Security Review, Lead, and Release identities verified distinct as required",
+    "Independent Code Review, QA, and Security Review objects, sole parents, candidate-relative paths, schemas, canonical refs, exact PR-visible JSON, PASS dispositions, and freshness verified",
+    "All current PR comments inspected; zero BLOCKING and zero MAJOR findings and no duplicate selected declaration found",
+    "Candidate run 32515688562 repository, workflow name/path, pull_request event, exact PR association, candidate SHA, completed status, and success conclusion verified",
+    "Required CI jobs passed; integration identity job correctly skipped on pull_request",
+    "Real historical smoke verified PR 2 run 32506504659, authorization 74bd931c1e9469e8e0feef215bfd888d97903942, integration b7a3262d83e8851267ab93a4d6c48e27ade92fa8, authenticated governance refs, and exact_authorized_context",
+    "Local governance validator passed",
+    "Complete Bootstrap regression suite passed: 123/123",
+    "Policy and authorization-schema mutation suite passed: 65/65",
+    "Candidate identity and git diff --check passed",
+    "Gitleaks, authenticated governance-ref smoke, and real historical post-merge smoke passed"
+  ],
+  "findings": [],
+  "disposition": "PASS"
+}
