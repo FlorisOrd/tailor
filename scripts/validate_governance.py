@@ -62,7 +62,7 @@ def main():
         except json.JSONDecodeError:p.append(f"invalid schema: {schema}")
     workflow=contents.get(".github/workflows/governance.yml","")
     for token in ("scripts/validate_governance.py","unittest discover","scripts/verify_integration.py","gitleaks/gitleaks-action") :req(token in workflow,f"workflow missing {token}",p)
-    req("governance-ref-auth-smoke:" in workflow and workflow.count("scripts/fetch_governance_refs.sh")==2,"workflow missing shared pre/post-integration governance-ref authentication",p)
+    req("governance-ref-auth-smoke:" in workflow and "historical-post-merge-evidence:" in workflow and workflow.count("scripts/fetch_governance_refs.sh")==3,"workflow missing shared pre/post-integration governance-ref authentication",p)
     req(workflow.count("persist-credentials: false")>=5,"workflow persists checkout credentials",p)
     fetcher=contents.get("scripts/fetch_governance_refs.sh","")
     for token in ("GIT_ASKPASS", "GIT_TERMINAL_PROMPT=0", "refs/governance/authorizations/", "refs/governance/bootstrap-gates/", "git cat-file -e") :req(token in fetcher,f"governance-ref fetcher missing {token}",p)

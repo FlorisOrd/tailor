@@ -10,8 +10,8 @@ sys.path.insert(0, str(ROOT / "scripts"))
 from tests.test_gate_records import record
 from verify_integration import (
     AUTH_CONTEXT_MAP, CONTEXT_FIELDS, LiveReleaseContext, build_live_release_context, ci_identity,
-    remote_ref_sha, validate_ci_against_context, validate_release_context, verify_authorization,
-    verify_integration,
+    remote_ref_sha, validate_ci_against_context, validate_historical_ci_after_merge,
+    validate_merged_pr_after_merge, validate_release_context, verify_authorization, verify_integration,
 )
 
 def schema_problems(value, schema, path="authorization"):
@@ -80,7 +80,10 @@ class IntegrationTests(unittest.TestCase):
         value = {"number":1, "state":"open", "merged":False, "base":{"ref":"main", "sha":self.base, "repo":{"full_name":"FlorisOrd/tailor"}}, "head":{"ref":"bootstrap/agent-company", "sha":self.candidate, "repo":{"full_name":"FlorisOrd/tailor"}}}
         value.update(changes); return value
     def run_payload(self, **changes):
-        value = {"name":"Governance Baseline", "path":".github/workflows/governance.yml", "event":"pull_request", "pull_requests":[{"number":1}], "head_sha":self.candidate, "status":"completed", "conclusion":"success"}
+        value = {"id":123, "name":"Governance Baseline", "path":".github/workflows/governance.yml", "event":"pull_request", "pull_requests":[{"number":1}], "head_sha":self.candidate, "head_branch":"bootstrap/agent-company", "repository":{"full_name":"FlorisOrd/tailor"}, "head_repository":{"full_name":"FlorisOrd/tailor"}, "status":"completed", "conclusion":"success"}
+        value.update(changes); return value
+    def merged_pr_payload(self, **changes):
+        value = self.pr_payload(state="closed", merged=True, merge_commit_sha=self.integration)
         value.update(changes); return value
 
     def test_exact_authorization_passes_before_merge(self): verify_authorization(self.auth)
@@ -170,6 +173,73 @@ class IntegrationTests(unittest.TestCase):
         for associations in (None, [], [{"number":"1"}], [{"number":1}, {"number":2}]):
             with self.subTest(associations=associations): self.assertRaises(ValueError, ci_identity, self.run_payload(pull_requests=associations))
     def test_wrong_pr_ci_attack_fails(self): self.assertTrue(validate_ci_against_context(self.run_payload(pull_requests=[{"number":2}]), self.context))
+    def test_pre_merge_empty_association_still_fails(self):
+        self.assertRaises(ValueError, ci_identity, self.run_payload(pull_requests=[]))
+
+    def test_historical_ci_exact_failure_empty_association_passes(self):
+        actual = self.run_payload(
+            id=32506504659, head_sha="d6a96a5a54b95ad3a974081355352e50bc33b30e",
+            head_branch="fix/bootstrap-post-integration-ci-auth", pull_requests=[])
+        authorization = dict(self.auth_payload, ci_run_id=32506504659,
+            candidate_sha="d6a96a5a54b95ad3a974081355352e50bc33b30e",
+            ci_candidate_sha="d6a96a5a54b95ad3a974081355352e50bc33b30e",
+            head_branch="fix/bootstrap-post-integration-ci-auth", pr_number=2, ci_pr_number=2)
+        self.assertEqual([], validate_historical_ci_after_merge(actual, authorization))
+
+    def test_historical_ci_association_rules(self):
+        cases = (([], False), ([{"number":1}], False), ([{"number":2}], True),
+                 ([{"number":1}, {"number":2}], True), (None, True), ([{"number":"1"}], True))
+        for associations, fails in cases:
+            with self.subTest(associations=associations):
+                self.assertEqual(fails, bool(validate_historical_ci_after_merge(self.run_payload(pull_requests=associations), self.auth_payload)))
+
+    def test_historical_ci_identity_attacks_fail(self):
+        cases = {
+            "id":{"id":124}, "workflow":{"name":"Other"}, "path":{"path":"other.yml"},
+            "event":{"event":"push"}, "sha":{"head_sha":self.base}, "status":{"status":"in_progress"},
+            "conclusion":{"conclusion":"failure"}, "repository":{"repository":{"full_name":"Other/repo"}},
+            "head_repository":{"head_repository":{"full_name":"Other/repo"}}, "branch":{"head_branch":"other"},
+        }
+        for name, changes in cases.items():
+            with self.subTest(name=name): self.assertTrue(validate_historical_ci_after_merge(self.run_payload(**changes), self.auth_payload))
+
+    def test_merged_pr_exact_binding_passes(self):
+        self.assertEqual([], validate_merged_pr_after_merge(self.merged_pr_payload(), self.auth_payload, self.integration))
+
+    def test_pr_2_exact_historical_ci_and_merged_pr_fixtures_pass(self):
+        candidate = "d6a96a5a54b95ad3a974081355352e50bc33b30e"
+        integration = "b7a3262d83e8851267ab93a4d6c48e27ade92fa8"
+        authorization = dict(self.auth_payload, pr_number=2, ci_pr_number=2, ci_run_id=32506504659,
+            base_sha="8aa23907acdd381f6a081af4eaa69f5a8ee6ed91", candidate_sha=candidate,
+            ci_candidate_sha=candidate, head_branch="fix/bootstrap-post-integration-ci-auth")
+        run = self.run_payload(id=32506504659, head_sha=candidate,
+            head_branch="fix/bootstrap-post-integration-ci-auth", pull_requests=[])
+        pr = {"number":2, "state":"closed", "merged":True, "merge_commit_sha":integration,
+            "base":{"ref":"main", "sha":authorization["base_sha"], "repo":{"full_name":"FlorisOrd/tailor"}},
+            "head":{"ref":"fix/bootstrap-post-integration-ci-auth", "sha":candidate,
+                    "repo":{"full_name":"FlorisOrd/tailor"}}}
+        self.assertEqual([], validate_historical_ci_after_merge(run, authorization))
+        self.assertEqual([], validate_merged_pr_after_merge(pr, authorization, integration))
+
+    def test_merged_pr_binding_attacks_fail(self):
+        cases = {
+            "pr":{"number":2}, "state":{"state":"open"}, "merged":{"merged":False},
+            "merge":{"merge_commit_sha":self.candidate},
+            "head_sha":{"head":{"ref":"bootstrap/agent-company", "sha":self.base, "repo":{"full_name":"FlorisOrd/tailor"}}},
+            "head_branch":{"head":{"ref":"other", "sha":self.candidate, "repo":{"full_name":"FlorisOrd/tailor"}}},
+            "head_repo":{"head":{"ref":"bootstrap/agent-company", "sha":self.candidate, "repo":{"full_name":"Other/repo"}}},
+            "base_repo":{"base":{"ref":"main", "sha":self.base, "repo":{"full_name":"Other/repo"}}},
+            "base_branch":{"base":{"ref":"trunk", "sha":self.base, "repo":{"full_name":"FlorisOrd/tailor"}}},
+            "base_sha":{"base":{"ref":"main", "sha":self.candidate, "repo":{"full_name":"FlorisOrd/tailor"}}},
+        }
+        for name, changes in cases.items():
+            with self.subTest(name=name): self.assertTrue(validate_merged_pr_after_merge(self.merged_pr_payload(**changes), self.auth_payload, self.integration))
+
+    def test_live_integration_uses_phase_specific_validators(self):
+        with patch.dict(os.environ, {"GITHUB_TOKEN":"token"}), \
+             patch("verify_integration.validate_selected_live", return_value=[]), \
+             patch("verify_integration.github_json", side_effect=[self.merged_pr_payload(), self.run_payload(pull_requests=[])]):
+            verify_integration(self.integration, reconcile_live=True)
     def test_same_sha_alternate_head_attack_fails(self): self.assertTrue(validate_release_context(replace(self.context, head_branch="alternate"), self.auth_payload, 1, "bootstrap/agent-company"))
     def test_builder_does_not_trust_alternate_pr_head_branch(self):
         refs = {"refs/heads/main":self.base, "refs/heads/bootstrap/agent-company":self.candidate}

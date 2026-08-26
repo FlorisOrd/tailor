@@ -63,7 +63,7 @@ Governed material changes use **MERGE COMMIT ONLY** with fast-forward, squash, a
 
 GitHub Free cannot prove which Codex process authored a comment/commit, map textual `agent_id` to a physically distinct process, enforce separate credentials, or prove a privileged writer never deleted/repointed evidence before observation. It can verify observed commits, trees, objects, refs, graph relationships, and current GitHub/remote consistency. These identity and pre-observation deletion limits remain explicit.
 
-After merge, record the integration/main commit SHA and tree hash. Verify its parent identities and verify that its tree hash exactly equals the approved candidate tree hash. A different tree, parents, or base condition blocks deployment and requires appropriate renewed verification; never rationalize the mismatch as merge-only metadata.
+After merge, record the integration/main commit SHA and tree hash. Verify its parent identities and verify that its tree hash exactly equals the approved candidate tree hash. Reconcile the authoritative merged PR directly to the immutable authorization and integration, and recheck the historical candidate run by stable authorized run/repository/workflow/event/SHA/result identity. GitHub may empty the historical run's `pull_requests` array after merge; empty is not itself a failure, while a conflicting, multiple, or malformed association remains a failure. A different tree, parents, or base condition blocks deployment and requires appropriate renewed verification; never rationalize the mismatch as merge-only metadata.
 
 ### E. Authorization to Deploy
 

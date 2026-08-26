@@ -163,6 +163,69 @@ def validate_ci_against_context(run, context):
     except ValueError as error: return [str(error)]
     return [f"CI {field} differs from authorized release context" for field, value in identity.items() if value != getattr(context, field)]
 
+def validate_historical_ci_after_merge(run, authorization):
+    """Validate stable candidate-run identity after GitHub has merged its PR."""
+    expected = {
+        "id": authorization["ci_run_id"],
+        "name": authorization["ci_workflow_name"],
+        "path": authorization["ci_workflow_path"],
+        "event": "pull_request",
+        "head_sha": authorization["candidate_sha"],
+        "status": "completed",
+        "conclusion": "success",
+    }
+    problems = [f"historical CI {field} differs from authorized release context"
+                for field, value in expected.items() if run.get(field) != value]
+    repository = run.get("repository")
+    if not isinstance(repository, dict) or repository.get("full_name") != authorization["repository"]:
+        problems.append("historical CI repository differs from authorized release context")
+    # These fields are reliably present on Actions run responses, but fail closed only
+    # when GitHub exposes them; older retained payloads may omit them.
+    if "head_branch" in run and run.get("head_branch") != authorization["head_branch"]:
+        problems.append("historical CI head branch differs from authorized release context")
+    if "head_repository" in run:
+        head_repository = run.get("head_repository")
+        if not isinstance(head_repository, dict) or head_repository.get("full_name") != authorization["head_repository"]:
+            problems.append("historical CI head repository differs from authorized release context")
+    associations = run.get("pull_requests")
+    if not isinstance(associations, list):
+        problems.append("historical CI PR associations are malformed")
+    elif len(associations) > 1:
+        problems.append("historical CI run has multiple PR associations")
+    elif len(associations) == 1:
+        association = associations[0]
+        if not isinstance(association, dict) or not isinstance(association.get("number"), int):
+            problems.append("historical CI PR association is malformed")
+        elif association["number"] != authorization["pr_number"]:
+            problems.append("historical CI PR association differs from authorized PR")
+    return problems
+
+def validate_merged_pr_after_merge(pr, authorization, integration):
+    """Bind the authoritative merged PR to authorization and integration."""
+    try:
+        actual = {
+            "number": pr["number"], "state": pr["state"], "merged": pr["merged"],
+            "repository": pr["base"]["repo"]["full_name"],
+            "head_repository": pr["head"]["repo"]["full_name"],
+            "base_branch": pr["base"]["ref"], "head_branch": pr["head"]["ref"],
+            "head_sha": pr["head"]["sha"], "merge_commit_sha": pr["merge_commit_sha"],
+        }
+    except (KeyError, TypeError):
+        return ["merged PR identity is incomplete or malformed"]
+    expected = {
+        "number": authorization["pr_number"], "state": "closed", "merged": True,
+        "repository": authorization["repository"],
+        "head_repository": authorization["head_repository"],
+        "base_branch": authorization["base_branch"], "head_branch": authorization["head_branch"],
+        "head_sha": authorization["candidate_sha"], "merge_commit_sha": integration,
+    }
+    problems = [f"merged PR {field} differs from authorized integration"
+                for field, value in expected.items() if actual[field] != value]
+    # GitHub currently retains the original base SHA after merge; validate it when exposed.
+    if "sha" in pr.get("base", {}) and pr["base"]["sha"] != authorization["base_sha"]:
+        problems.append("merged PR base SHA differs from authorization")
+    return problems
+
 def load_authorization(commit):
     require_commit(commit, "authorization")
     try: a = json.loads(git("show", f"{commit}:{AUTH_PATH}"))
@@ -223,9 +286,12 @@ def verify_integration(integration, authorization_arg=None, reconcile_live=False
         if not token: raise ValueError("live selected-evidence validation requires GitHub context")
         _, records_by_type = load_gate_records(a)
         problems = validate_selected_live(context.repository, context.pr_number, token, records_by_type, a["gate_record_commits"])
-        try: run = github_json(f"https://api.github.com/repos/{context.repository}/actions/runs/{a['ci_run_id']}", token)
+        try:
+            pr_payload = github_json(f"https://api.github.com/repos/{context.repository}/pulls/{a['pr_number']}", token)
+            run = github_json(f"https://api.github.com/repos/{context.repository}/actions/runs/{a['ci_run_id']}", token)
         except Exception as error: raise ValueError("required integration CI evidence is unavailable") from error
-        problems.extend(validate_ci_against_context(run, context))
+        problems.extend(validate_merged_pr_after_merge(pr_payload, a, integration))
+        problems.extend(validate_historical_ci_after_merge(run, a))
         if problems: raise ValueError("current release evidence is invalid: " + "; ".join(problems))
     if context.pr_number != pr: raise ValueError("authorization PR differs from integration PR")
     parents = git("show", "-s", "--format=%P", integration).split()
